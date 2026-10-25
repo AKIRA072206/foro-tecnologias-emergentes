@@ -1,0 +1,285 @@
+/* ============================================================
+   Certificado de Asistencia
+   Fondo = plantilla del reconocimiento oficial (UPTYAB / Foro IA)
+   ============================================================ */
+
+:root {
+    --navy: #001b48;
+    --blue: #0d47a1;
+    --serif: "Libre Baskerville", "Times New Roman", Georgia, serif;
+    --sans: "Montserrat", Arial, Helvetica, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.cert-page {
+    min-height: 100vh;
+    background: #d7e0ec;
+    font-family: var(--sans);
+    color: var(--navy);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.cert-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    width: min(100% - 2rem, 1100px);
+    margin: 1rem auto;
+}
+
+.cert-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.btn-tool:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.btn-tool {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.65rem 1.15rem;
+    border-radius: 999px;
+    border: 1px solid #90a4ae;
+    background: #fff;
+    color: var(--navy);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-tool-primary {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+}
+
+.certificate {
+    position: relative;
+    width: min(100% - 1.25rem, 1100px);
+    aspect-ratio: 1024 / 724;
+    margin: 0 auto 2rem;
+    background: #fff;
+    box-shadow: 0 20px 55px rgba(0, 18, 51, 0.22);
+    overflow: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.cert-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    z-index: 1;
+    pointer-events: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.cert-logos {
+    position: absolute;
+    top: 5.5%;
+    left: 6%;
+    right: 6%;
+    z-index: 6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+}
+
+/* Mismo tamaño para ambos logos */
+.logo-foro-cert,
+.logo-uptyab {
+    width: clamp(110px, 16vw, 168px);
+    height: clamp(110px, 16vw, 168px);
+    object-fit: contain;
+    object-position: center;
+}
+
+.logo-foro-cert {
+    border-radius: 12px;
+    background: transparent;
+}
+
+.cert-content {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 22% 12% 10%;
+    text-align: center;
+}
+
+.cert-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    width: min(48%, 400px);
+    margin: 0.28rem 0 0.48rem;
+}
+
+.cert-divider::before,
+.cert-divider::after {
+    content: "";
+    flex: 1;
+    height: 1.5px;
+    background: var(--navy);
+}
+
+.cert-divider span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--navy);
+    box-shadow: -9px 0 0 var(--navy), 9px 0 0 var(--navy);
+    flex-shrink: 0;
+}
+
+.cert-divider-name {
+    margin-top: 0.08rem;
+    margin-bottom: 0.22rem;
+}
+
+.cert-title {
+    margin: 0.08rem 0;
+    font-family: var(--serif);
+    font-size: clamp(1.2rem, 3.1vw, 2.15rem);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--navy);
+    text-transform: uppercase;
+    line-height: 1.15;
+}
+
+.cert-otorgado {
+    margin: 0.45rem 0 0.28rem;
+    font-size: clamp(0.92rem, 1.5vw, 1.18rem);
+    font-weight: 500;
+    color: var(--navy);
+}
+
+.cert-name {
+    margin: 0.04rem 0;
+    font-family: var(--serif);
+    font-size: clamp(1.35rem, 3.7vw, 2.55rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--navy);
+    text-transform: uppercase;
+    line-height: 1.12;
+    max-width: 92%;
+}
+
+.cert-cedula {
+    margin: 0.08rem 0 0.5rem;
+    font-size: clamp(0.72rem, 1.1vw, 0.9rem);
+    font-weight: 500;
+    color: var(--blue);
+}
+
+.cert-motivo {
+    margin: 0.2rem 0 0.4rem;
+    max-width: 34rem;
+    font-size: clamp(0.88rem, 1.4vw, 1.1rem);
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--navy);
+}
+
+.cert-motivo strong {
+    font-weight: 700;
+}
+
+.cert-colaboracion {
+    margin: 0 0 0.6rem;
+    max-width: 36rem;
+    font-size: clamp(0.68rem, 1.05vw, 0.84rem);
+    font-weight: 400;
+    line-height: 1.45;
+    color: var(--navy);
+}
+
+.cert-fecha {
+    margin: 0.4rem 0 0;
+    font-size: clamp(0.92rem, 1.4vw, 1.1rem);
+    font-weight: 600;
+    color: var(--navy);
+}
+
+.cert-codigo {
+    margin: 0.5rem 0 0;
+    font-size: 0.72rem;
+    color: #607d8b;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .cert-page {
+        background: #fff;
+    }
+
+    .certificate {
+        width: 100%;
+        max-width: none;
+        height: 100vh;
+        margin: 0;
+        box-shadow: none;
+    }
+
+    @page {
+        size: landscape;
+        margin: 0;
+    }
+}
+
+@media (max-width: 760px) {
+    .certificate {
+        aspect-ratio: auto;
+        min-height: 560px;
+        height: auto;
+    }
+
+    .cert-bg {
+        object-fit: cover;
+        object-position: top center;
+    }
+
+    .cert-content {
+        position: relative;
+        padding: 8rem 1.4rem 2.2rem;
+        min-height: 560px;
+    }
+}
+
+/* Estado de la copia en Neon Object Storage */
+.cert-save-status { font-size: .8rem; color: #003b7a; margin-right: .5rem; }
+.cert-save-status.is-error { color: #b42318; }
+

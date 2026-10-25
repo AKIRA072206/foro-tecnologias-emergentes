@@ -1,0 +1,132 @@
+<%
+  const estudiantes = locals.estudiantes ?? [];
+  const error = locals.error ?? null;
+  const habilitada = Boolean(locals.asistenciaHabilitada);
+  const total = estudiantes.length;
+  const asistentes = estudiantes.filter((e) => Boolean(e.asistio)).length;
+  const colspan = habilitada ? 7 : 6;
+  const fmt = (value) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+%>
+<%- include("../layouts/header") %>
+<section class="section py-4">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+            <div>
+                <h1 class="h3 mb-1">Panel de logística</h1>
+                <p class="text-muted mb-0">
+                    Evento: <%= locals.eventoFecha %> · <%= locals.eventoHora %>
+                    · Sesión: <strong><%= locals.usuario ?? "" %></strong>
+                </p>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <span class="badge text-bg-primary fs-6"><span id="stat-total"><%= total %></span> registrados</span>
+                <% if (habilitada) { %>
+                    <span class="badge text-bg-success fs-6"><span id="stat-asistentes"><%= asistentes %></span> asistieron</span>
+                <% } %>
+                <a class="btn btn-outline-primary btn-sm" href="/logout">Cerrar sesión</a>
+            </div>
+        </div>
+
+        <% if (habilitada) { %>
+            <div class="alert alert-success" role="status">
+                Modo prueba activo: use el selector <strong>¿Vino?</strong> para marcar asistencia y generar certificados.
+            </div>
+        <% } else { %>
+            <div class="alert alert-info" role="status">
+                Listado de inscritos en vivo. El control de asistencia se habilitará el <strong>06 de noviembre de 2026</strong>.
+            </div>
+        <% } %>
+
+        <% if (error) { %>
+            <div class="alert alert-danger"><%= error %></div>
+        <% } %>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="flex-grow-1" style="max-width: 360px;">
+                <label class="visually-hidden" for="buscador">Buscar</label>
+                <input type="search" class="form-control" id="buscador"
+                       placeholder="Buscar por cédula o apellido…" autocomplete="off">
+            </div>
+            <p class="text-muted small mb-0" id="refresh-note">
+                <%= locals.realtime ? "Actualización en vivo (Neon Realtime)" : "Actualización automática cada 15 s" %>
+            </p>
+        </div>
+
+        <div class="table-responsive card shadow-sm border-0">
+            <table class="table table-hover table-striped align-middle mb-0" id="tabla-asistencia"
+                   data-asistencia="<%= habilitada ? "1" : "0" %>"
+                   data-live="<%= locals.realtime ? "1" : "0" %>">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Cédula</th>
+                        <th>Apellido</th>
+                        <th>Nombre</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <% if (habilitada) { %>
+                            <th>¿Vino?</th>
+                            <th>Certificado</th>
+                        <% } else { %>
+                            <th>Registro</th>
+                        <% } %>
+                    </tr>
+                </thead>
+                <tbody id="tbody-estudiantes">
+                <% if (estudiantes.length === 0) { %>
+                    <tr class="empty-row">
+                        <td colspan="<%= colspan %>" class="text-center text-muted py-4">No hay participantes registrados aún.</td>
+                    </tr>
+                <% } else { %>
+                    <% estudiantes.forEach((est) => { const asistio = Boolean(est.asistio); const id = Number(est.id); %>
+                        <tr data-id="<%= id %>"
+                            data-cedula="<%= String(est.cedula).toLowerCase() %>"
+                            data-apellido="<%= String(est.apellido).toLocaleLowerCase("es") %>">
+                            <td><%= est.cedula %></td>
+                            <td><%= est.apellido %></td>
+                            <td><%= est.nombre %></td>
+                            <td><%= est.correo %></td>
+                            <td><%= est.telefono %></td>
+                            <% if (habilitada) { %>
+                                <td>
+                                    <% if (asistio) { %>
+                                        <select class="form-select form-select-sm select-asistencia" data-id="<%= id %>" disabled
+                                                title="Asistencia confirmada: no se puede modificar"
+                                                aria-label="Asistencia confirmada de <%= est.nombre %> <%= est.apellido %>">
+                                            <option value="1" selected>Sí</option>
+                                        </select>
+                                    <% } else { %>
+                                        <select class="form-select form-select-sm select-asistencia" data-id="<%= id %>"
+                                                aria-label="Asistencia de <%= est.nombre %> <%= est.apellido %>">
+                                            <option value="0" selected>No</option>
+                                            <option value="1">Sí</option>
+                                        </select>
+                                    <% } %>
+                                </td>
+                                <td class="cell-cert">
+                                    <% if (asistio) { %>
+                                        <a class="btn btn-sm btn-outline-primary" href="/certificados/<%= id %>" target="_blank" rel="noopener">Ver</a>
+                                    <% } else { %>
+                                        <span class="text-muted">—</span>
+                                    <% } %>
+                                </td>
+                            <% } else { %>
+                                <td><%= fmt(est.fecha_registro) %></td>
+                            <% } %>
+                        </tr>
+                    <% }); %>
+                <% } %>
+                </tbody>
+            </table>
+        </div>
+
+        <input type="hidden" id="csrf-logistica" value="<%= csrf %>">
+        <p id="toast-logistica" class="toast" role="status" aria-live="polite"></p>
+    </div>
+</section>
+<%- include("../layouts/footer") %>

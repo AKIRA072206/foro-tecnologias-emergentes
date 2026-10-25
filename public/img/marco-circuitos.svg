@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" preserveAspectRatio="none">
+  <defs>
+    <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#4fc3f7" opacity="0.55"/>
+    </pattern>
+  </defs>
+  <!-- Marco exterior -->
+  <rect x="8" y="8" width="984" height="684" fill="none" stroke="#0a1f4d" stroke-width="14"/>
+  <rect x="22" y="22" width="956" height="656" fill="none" stroke="#0d2b6b" stroke-width="3"/>
+  <!-- Banda de circuitos -->
+  <rect x="28" y="28" width="944" height="644" fill="none" stroke="url(#dots)" stroke-width="22" opacity="0.35"/>
+
+  <!-- Esquina superior izquierda -->
+  <g fill="none" stroke="#29b6f6" stroke-width="2" opacity="0.9">
+    <path d="M40 90 H70 V55 H110"/>
+    <path d="M40 120 H55 V150 H90"/>
+    <path d="M100 40 V70 H140"/>
+    <circle cx="70" cy="55" r="3" fill="#29b6f6"/>
+    <circle cx="110" cy="55" r="3" fill="#29b6f6"/>
+    <circle cx="55" cy="150" r="3" fill="#29b6f6"/>
+    <circle cx="140" cy="70" r="3" fill="#29b6f6"/>
+    <rect x="78" y="78" width="22" height="14" rx="2" fill="#0d2b6b" stroke="none" opacity="0.85"/>
+  </g>
+
+  <!-- Esquina superior derecha -->
+  <g fill="none" stroke="#29b6f6" stroke-width="2" opacity="0.9">
+    <path d="M960 90 H930 V55 H890"/>
+    <path d="M960 120 H945 V155 H910"/>
+    <path d="M900 40 V75 H860"/>
+    <path d="M860 55 H830 V85 H800"/>
+    <circle cx="930" cy="55" r="3" fill="#29b6f6"/>
+    <circle cx="890" cy="55" r="3" fill="#29b6f6"/>
+    <circle cx="945" cy="155" r="3" fill="#29b6f6"/>
+    <circle cx="860" cy="75" r="3" fill="#29b6f6"/>
+    <circle cx="800" cy="85" r="3" fill="#29b6f6"/>
+    <rect x="900" y="95" width="28" height="16" rx="2" fill="#0d2b6b" stroke="none"/>
+    <rect x="870" y="120" width="18" height="12" rx="2" fill="#1565c0" stroke="none"/>
+  </g>
+
+  <!-- Esquina inferior izquierda -->
+  <g fill="none" stroke="#29b6f6" stroke-width="2" opacity="0.9">
+    <path d="M40 610 H75 V655 H120"/>
+    <path d="M40 580 H60 V550 H100"/>
+    <path d="M140 660 V630 H180"/>
+    <circle cx="75" cy="655" r="3" fill="#29b6f6"/>
+    <circle cx="120" cy="655" r="3" fill="#29b6f6"/>
+    <circle cx="60" cy="550" r="3" fill="#29b6f6"/>
+    <circle cx="180" cy="630" r="3" fill="#29b6f6"/>
+    <rect x="85" y="600" width="24" height="14" rx="2" fill="#0d2b6b" stroke="none"/>
+  </g>
+
+  <!-- Esquina inferior derecha -->
+  <g fill="none" stroke="#29b6f6" stroke-width="2" opacity="0.85">
+    <path d="M960 610 H925 V655 H880"/>
+    <path d="M960 580 H940 V545 H900"/>
+    <path d="M860 660 V625 H820"/>
+    <path d="M820 640 H780 V610"/>
+    <circle cx="925" cy="655" r="3" fill="#29b6f6"/>
+    <circle cx="880" cy="655" r="3" fill="#29b6f6"/>
+    <circle cx="940" cy="545" r="3" fill="#29b6f6"/>
+    <circle cx="820" cy="625" r="3" fill="#29b6f6"/>
+    <rect x="890" y="590" width="30" height="16" rx="2" fill="#0d2b6b" stroke="none"/>
+    <rect x="850" y="615" width="20" height="12" rx="2" fill="#1565c0" stroke="none"/>
+  </g>
+</svg>

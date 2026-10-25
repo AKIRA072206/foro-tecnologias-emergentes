@@ -1,0 +1,30 @@
+<%
+  const mensaje = locals.mensaje ?? null;
+  const tipo = locals.tipo ?? null;
+%>
+<%- include("../layouts/header") %>
+<section class="section py-4 py-md-5">
+    <div class="container" style="max-width: 560px;">
+        <header class="section-head mb-4">
+            <h1 class="h3 mb-1">Certificados de asistencia</h1>
+            <p class="text-muted mb-0">Consulte el certificado con la cédula. Solo disponible si se marcó asistencia.</p>
+        </header>
+
+        <% if (mensaje) { %>
+            <div class="alert alert-<%= tipo === "error" ? "danger" : tipo %>" role="status">
+                <%= mensaje %>
+            </div>
+        <% } %>
+
+        <form class="card shadow-sm border-0 p-3 p-md-4" method="GET" action="/certificados/buscar" novalidate>
+            <div class="mb-3">
+                <label class="form-label" for="cedula-cert">Cédula</label>
+                <input type="text" class="form-control" id="cedula-cert" name="cedula" maxlength="10"
+                       inputmode="numeric" pattern="[0-9]{6,10}"
+                       placeholder="Ingrese su número de cédula" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Buscar certificado</button>
+        </form>
+    </div>
+</section>
+<%- include("../layouts/footer") %>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 90" role="img" aria-label="UPTYAB">
+  <!-- Silueta estilizada -->
+  <g transform="translate(8,8)">
+    <path d="M28 8c8 0 14 6 14 14 0 6-4 11-9 13v4c10 3 18 12 20 24H8c2-12 10-21 20-24v-4c-5-2-9-7-9-13 0-8 6-14 14-14z" fill="#0a2a6b"/>
+    <!-- Flor / llama tricolor -->
+    <g transform="translate(42,6)">
+      <ellipse cx="10" cy="14" rx="7" ry="12" fill="#e53935" transform="rotate(-25 10 14)"/>
+      <ellipse cx="18" cy="12" rx="7" ry="13" fill="#43a047" transform="rotate(8 18 12)"/>
+      <ellipse cx="26" cy="14" rx="7" ry="12" fill="#1e88e5" transform="rotate(28 26 14)"/>
+      <circle cx="18" cy="18" r="4" fill="#fdd835"/>
+    </g>
+  </g>
+  <!-- Texto YAB / UPTYAB -->
+  <text x="95" y="38" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700" fill="#0a2a6b" letter-spacing="1">YAB</text>
+  <text x="95" y="58" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#0a2a6b" letter-spacing="2">UPTYAB</text>
+  <text x="8" y="82" font-family="Arial, Helvetica, sans-serif" font-size="7.5" font-weight="600" fill="#0a2a6b" letter-spacing="0.3">UNIVERSIDAD POLITÉCNICA TERRITORIAL</text>
+  <text x="8" y="92" font-family="Arial, Helvetica, sans-serif" font-size="7.5" font-weight="600" fill="#0a2a6b" letter-spacing="0.3">DE YARACUY &quot;ARÍSTIDES BASTIDAS&quot;</text>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Logo IA">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00c2ff"/>
+      <stop offset="45%" stop-color="#3b5bdb"/>
+      <stop offset="100%" stop-color="#9b5de5"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00e5ff"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <!-- Hexágono exterior -->
+  <polygon points="60,8 100,30 100,74 60,96 20,74 20,30" fill="none" stroke="url(#g1)" stroke-width="3.5"/>
+  <polygon points="60,18 92,36 92,68 60,86 28,68 28,36" fill="none" stroke="url(#g2)" stroke-width="2" opacity="0.85"/>
+  <!-- Nodos y conexiones -->
+  <g stroke="url(#g1)" stroke-width="2" fill="none">
+    <line x1="60" y1="18" x2="60" y2="42"/>
+    <line x1="28" y1="36" x2="48" y2="48"/>
+    <line x1="92" y1="36" x2="72" y2="48"/>
+    <line x1="28" y1="68" x2="48" y2="58"/>
+    <line x1="92" y1="68" x2="72" y2="58"/>
+    <line x1="60" y1="86" x2="60" y2="66"/>
+    <line x1="48" y1="48" x2="72" y2="48"/>
+    <line x1="48" y1="58" x2="72" y2="58"/>
+    <line x1="48" y1="48" x2="48" y2="58"/>
+    <line x1="72" y1="48" x2="72" y2="58"/>
+  </g>
+  <g fill="#1a237e">
+    <circle cx="60" cy="18" r="4" fill="#00bcd4"/>
+    <circle cx="92" cy="36" r="4" fill="#5c6bc0"/>
+    <circle cx="92" cy="68" r="4" fill="#7e57c2"/>
+    <circle cx="60" cy="86" r="4" fill="#26c6da"/>
+    <circle cx="28" cy="68" r="4" fill="#5e35b1"/>
+    <circle cx="28" cy="36" r="4" fill="#29b6f6"/>
+    <circle cx="48" cy="48" r="3.2" fill="#3949ab"/>
+    <circle cx="72" cy="48" r="3.2" fill="#8e24aa"/>
+    <circle cx="48" cy="58" r="3.2" fill="#00acc1"/>
+    <circle cx="72" cy="58" r="3.2" fill="#6a1b9a"/>
+  </g>
+  <!-- Centro AI -->
+  <rect x="46" y="46" width="28" height="28" rx="4" fill="#0d1b4c"/>
+  <text x="60" y="66" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#ffffff">AI</text>
+</svg>

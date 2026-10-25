@@ -1,0 +1,91 @@
+<%
+  const old = locals.old ?? {};
+  const errores = locals.errores ?? {};
+  const mensaje = locals.mensaje ?? null;
+  const tipo = locals.tipo ?? null;
+  const alerta = mensaje ? `alert alert-${tipo === "error" ? "danger" : tipo} show` : "alert d-none";
+  const errClass = (key) => (errores[key] ? " is-invalid" : "");
+  const val = (key) => old[key] ?? "";
+%>
+<%- include("../layouts/header") %>
+<section class="section section-registro py-4 py-md-5">
+    <div class="container" style="max-width: 760px;">
+        <header class="section-head mb-4">
+            <span class="badge rounded-pill text-bg-primary mb-2">06 de noviembre de 2026 · 8:00 AM</span>
+            <h1 class="h2 mb-1">Registro de participantes</h1>
+            <p class="text-muted mb-0">II Foro de Tecnologías Emergentes: Inteligencia Artificial</p>
+        </header>
+
+        <div id="alerta" class="<%= alerta %>" role="status" aria-live="polite">
+            <%= mensaje ?? "" %>
+        </div>
+
+        <form id="form-registro" class="card shadow-sm border-0 p-3 p-md-4" method="POST" action="/registro" novalidate>
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="cedula">Cédula <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control<%= errClass("cedula") %>" id="cedula" name="cedula"
+                           maxlength="10" inputmode="numeric" pattern="[0-9]{6,10}"
+                           placeholder="Ingrese su número de cédula"
+                           value="<%= val("cedula") %>" autocomplete="off" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="cedula"><%= errores.cedula ?? "" %></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="nombre">Primer nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control<%= errClass("nombre") %>" id="nombre" name="nombre"
+                           maxlength="30" placeholder="Ingrese su primer nombre"
+                           value="<%= val("nombre") %>" autocomplete="given-name" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="nombre"><%= errores.nombre ?? "" %></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="apellido">Primer apellido <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control<%= errClass("apellido") %>" id="apellido" name="apellido"
+                           maxlength="30" placeholder="Ingrese su primer apellido"
+                           value="<%= val("apellido") %>" autocomplete="family-name" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="apellido"><%= errores.apellido ?? "" %></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="fecha_nacimiento">Fecha de nacimiento <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control<%= errClass("fecha_nacimiento") %>" id="fecha_nacimiento"
+                           name="fecha_nacimiento" value="<%= val("fecha_nacimiento") %>"
+                           placeholder="Ingrese su fecha de nacimiento"
+                           max="<%= locals.hoy %>" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="fecha_nacimiento"><%= errores.fecha_nacimiento ?? "" %></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="edad">Edad</label>
+                    <input type="text" class="form-control" id="edad" name="edad_display" readonly
+                           placeholder="Su edad se calcula automáticamente" value="" tabindex="-1" aria-readonly="true">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="correo">Correo electrónico <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control<%= errClass("correo") %>" id="correo" name="correo"
+                           maxlength="150" placeholder="Ingrese su correo electrónico"
+                           value="<%= val("correo") %>" autocomplete="email" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="correo"><%= errores.correo ?? "" %></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="telefono">Teléfono <span class="text-danger">*</span></label>
+                    <input type="tel" class="form-control<%= errClass("telefono") %>" id="telefono" name="telefono"
+                           maxlength="15" inputmode="numeric" pattern="[0-9]{7,15}"
+                           placeholder="Ingrese su número de teléfono"
+                           value="<%= val("telefono") %>" autocomplete="tel" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="telefono"><%= errores.telefono ?? "" %></div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary px-4" id="btn-registrar">Registrar</button>
+            </div>
+        </form>
+    </div>
+</section>
+<%- include("../layouts/footer") %>

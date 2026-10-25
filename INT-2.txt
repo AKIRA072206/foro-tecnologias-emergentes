@@ -1,0 +1,42 @@
+[MODO IMPLEMENTACIÓN ACTIVADO]
+Plan aprobado. Procedemos a ejecutar la migración del proyecto PHP a Node.js (Express 4.21) con EJS y Supabase, manteniendo la paridad visual y de contratos exacta.
+
+Ejecuta las tareas en orden riguroso:
+
+1. CONFIGURACIÓN BASE Y DEPENDENCIAS:
+   - Inicializar package.json con Node 22.
+   - Instalar dependencias exactas: express@4.21, ejs, @supabase/supabase-js, dotenv, cookie-parser, jsonwebtoken, multer, resend.
+   - Configurar Express para servir archivos estáticos desde /public manteniendo exactamente la ruta de CSS (/css/style.css, /css/certificado.css) y scripts (/js/app.js, /js/certificado.js).
+   - Configurar EJS como motor de vistas replicando las 12 vistas originales con idénticas clases, atributos (data-id, data-cedula, data-apellido) y manejo de errores (paridad visual absoluta).
+
+2. BASE DE DATOS Y SUPABASE:
+   - Usar @supabase/supabase-js con la llave service_role exclusivamente en el servidor (backend).
+   - Crear la tabla auxiliar en Supabase para idempotencia de correos (sin tocar la tabla 'estudiantes'):
+     CREATE TABLE IF NOT EXISTS certificados_envios (
+         id SERIAL PRIMARY KEY,
+         estudiante_id INT UNIQUE REFERENCES estudiantes(id) ON DELETE CASCADE,
+         estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+         intentos INT NOT NULL DEFAULT 0,
+         ultimo_error TEXT,
+         enviado_en TIMESTAMP
+     );
+
+3. AUTENTICACIÓN Y SEGURIDAD:
+   - Implementar autenticación para logística basada en JWT HS256 en cookie segura (foro_session, HttpOnly, Secure, SameSite=Lax, 8h) + protección CSRF (foro_csrf double-submit).
+   - Credenciales de acceso validadas contra variables de entorno con hash scrypt (FORO_PASS_HASH).
+
+4. RUTAS Y CONTROLADORES (CONTRATO INTACTO):
+   - GET / -> 302 a /registro
+   - GET /registro -> Vista EJS
+   - POST /registro -> Procesar con multer().none(), validar estrictamente cédula (6-10 dígitos), nombres sin espacios, edad (12-100), correo y teléfono. Responder JSON {ok, mensaje, id | errores}.
+   - GET /login, POST /login, GET /logout
+   - GET /logistica -> Vista EJS con listado en vivo
+   - GET /logistica/lista -> JSON con polling de 15s y estado de asistencia
+   - POST /logistica/asistencia -> Actualización atómica en base de datos (UPDATE estudiantes SET asistio = true WHERE id = $1 AND asistio = false RETURNING ...) para evitar duplicados.
+   - GET /certificados, GET /certificados/buscar, GET /certificados/:id (Staff)
+   - GET /c/:token -> NUEVA RUTA PÚBLICA: Valida token JWT de certificado firmado, muestra la vista de impresión/descarga del certificado sin requerir login.
+
+5. ENVÍO DE CORREOS AUTOMATIZADOS (RESEND):
+   - Al marcar asistencia con éxito ("Sí"), actualizar atómicamente la base de datos, responder el JSON al cliente de inmediato, y disparar en segundo plano (background) el envío del correo con Resend incluyendo el botón con el enlace firmado al certificado (/c/:token). Registrar el estado en 'certificados_envios'.
+
+Empieza creando la estructura base del servidor (server.js), el cliente de Supabase y el sistema de vistas EJS con paridad visual. Confirma cuando esté listo.

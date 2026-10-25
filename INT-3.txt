@@ -1,0 +1,23 @@
+[AUTORIZACIÓN TOTAL DE IMPLEMENTACIÓN Y DEPLOY]
+Acepto el plan de OpenCode. Por favor, ejecuta los siguientes pasos de forma ordenada para dejar el sistema 100% operativo y desplegado en Vercel:
+
+1. CORRECCIÓN DE DEPENDENCIAS:
+   - Instalar express@4.21.2, ejs@3.1.10 y @vercel/functions.
+   - Reemplazar el pool tradicional de 'pg' por el driver HTTP serverless de Neon (@neondatabase/serverless) en db.js para evitar agotar las conexiones en las funciones serverless de Vercel.
+
+2. VARIABLES DE ENTORNO Y SECRETS (.env.local):
+   - Generar claves aleatorias seguras (JWT secret, Function secret, Cert secret) usando crypto/openssl.
+   - Configurar el hash scrypt para la contraseña de logística.
+   - Asegurarte de incluir las credenciales de Resend (API Key y remitente) y la URL pública base.
+
+3. BASE DE DATOS Y MIGRACIONES:
+   - Ejecutar el script de migración en Neon (incluyendo el seed con los datos del backup) para que la base de datos no esté vacía.
+
+4. CONFIGURACIÓN DE VERCEL:
+   - Crear el archivo `vercel.json` con los rewrites correctos y el runtime configurado en nodejs22.x.
+   - Actualizar el .gitignore para proteger archivos sensibles.
+
+5. DESPLIEGUE FINAL (DEPLOY):
+   - Ejecutar el despliegue hacia Vercel y realizar una prueba de humo (smoke test) de las rutas principales (registro, login, panel de logística y certificado público /c/:token).
+
+Ejecuta cada paso, avísame si necesitas alguna llave o variable de mi parte, y déjalo desplegado.

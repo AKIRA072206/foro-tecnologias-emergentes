@@ -1,0 +1,72 @@
+<%
+  const est = locals.estudiante;
+  const nombreCompleto = locals.nombreCompleto;
+  const archivoPdf = locals.archivoPdf;
+%>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificado de Asistencia — <%= nombreCompleto %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/certificado.css">
+</head>
+<body class="cert-page">
+    <div class="cert-toolbar no-print">
+        <a href="<%= locals.volverHref %>" class="btn-tool">← Volver</a>
+        <div class="cert-toolbar-actions">
+            <span class="cert-save-status" id="pdf-estado" role="status" aria-live="polite"></span>
+            <button type="button" class="btn-tool" id="btn-imprimir">Imprimir</button>
+            <button type="button" class="btn-tool btn-tool-primary" id="btn-descargar-pdf">Descargar PDF</button>
+        </div>
+    </div>
+
+    <article class="certificate" id="certificado" aria-label="Certificado de asistencia"
+             data-filename="<%= archivoPdf %>"
+             data-estudiante-id="<%= est.id %>"
+             data-csrf="<%= locals.csrf %>">
+        <img class="cert-bg" src="/img/plantilla-certificado.png" alt="" aria-hidden="true">
+
+        <header class="cert-logos">
+            <img class="logo-foro-cert" src="/img/logo-foro-cert.png" alt="II Foro Tecnologías Emergentes — Inteligencia Artificial">
+            <img class="logo-uptyab" src="/img/logo-uptyab.png" alt="UPTYAB">
+        </header>
+
+        <div class="cert-content">
+            <div class="cert-divider" aria-hidden="true"><span></span></div>
+
+            <h1 class="cert-title">CERTIFICADO DE ASISTENCIA</h1>
+
+            <div class="cert-divider" aria-hidden="true"><span></span></div>
+
+            <p class="cert-otorgado">Otorgado a</p>
+
+            <p class="cert-name"><%= nombreCompleto %></p>
+
+            <div class="cert-divider cert-divider-name" aria-hidden="true"><span></span></div>
+
+            <p class="cert-cedula">Cédula: <%= est.cedula %></p>
+
+            <p class="cert-motivo">
+                Por su asistencia al
+                <strong>II Foro de Tecnologías Emergentes (IA).</strong>
+            </p>
+
+            <p class="cert-colaboracion">
+                Realizado en colaboración con los estudiantes de trayecto IV
+                del programa nacional de formación en informática de la UPTYAB.
+            </p>
+
+            <div class="cert-divider" aria-hidden="true"><span></span></div>
+
+            <p class="cert-fecha"><%= locals.eventoFecha %></p>
+        </div>
+    </article>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+    <script src="/js/certificado.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "name": "foro-tecnologias-emergentes",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "II Foro de Tecnologías Emergentes: Inteligencia Artificial — Express + EJS sobre Neon",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "build": "node scripts/build.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
+    "test:e2e": "node scripts/e2e.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/s3-request-presigner": "^3.1156.0",
+    "@neon/config": "^1.9.4",
+    "@neon/env": "^1.6.5",
+    "@neon/realtime": "^0.1.2",
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/functions": "^3.10.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.9",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

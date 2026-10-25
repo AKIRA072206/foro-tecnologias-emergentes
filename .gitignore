@@ -1,0 +1,25 @@
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Herramientas locales
+.vercel/
+.neon
+.neon/
+.tools/
+node_modules/
+vendor/
+.idea/
+.vscode/
+
+# Datos con información personal (cédulas, teléfonos, correos)
+foro_backup.sql
+
+# Artefactos
+*.log
+coverage/
+dist/
+Thumbs.db
+Desktop.ini
+.DS_Store
