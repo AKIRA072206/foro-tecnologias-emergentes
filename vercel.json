@@ -3,10 +3,10 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "runtime": "nodejs22.x",
+      "runtime": "nodejs24.x",
       "memory": 1024,
       "maxDuration": 30,
-      "includeFiles": ["views/**", "public/**"]
+      "includeFiles": "views/**,public/**"
     }
   },
   "rewrites": [
