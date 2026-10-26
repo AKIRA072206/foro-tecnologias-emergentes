@@ -2,7 +2,7 @@ import path from "node:path";
 import express from "express";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import { EVENTO } from "./config.js";
+import { EVENTO, asistenciaHabilitada } from "./config.js";
 import { csrfMiddleware } from "./auth.js";
 import { registroRouter } from "./routes/registro.js";
 import { authRouter } from "./routes/auth.js";
