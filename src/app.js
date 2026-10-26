@@ -1,7 +1,8 @@
 import path from "node:path";
 import express from "express";
 import cookieParser from "cookie-parser";
-import { EVENTO, ROOT, asistenciaHabilitada } from "./config.js";
+import dotenv from "dotenv";
+import { EVENTO } from "./config.js";
 import { csrfMiddleware } from "./auth.js";
 import { registroRouter } from "./routes/registro.js";
 import { authRouter } from "./routes/auth.js";
@@ -9,12 +10,20 @@ import { logisticaRouter } from "./routes/logistica.js";
 import { certificadosRouter } from "./routes/certificados.js";
 import { serviciosRouter } from "./routes/servicios.js";
 
+// Configuración robusta de rutas para serverless (Vercel)
+// Usamos process.cwd() en lugar de rutas relativas complejas
+// que pueden no resolver correctamente en contenedores serverless
+dotenv.config();
+
+// Absolute path to views folder based on process.cwd()
+const viewsPath = path.join(process.cwd(), "views");
+
 const app = express();
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.set("view engine", "ejs");
-app.set("views", path.join(ROOT, "views"));
+app.set("views", viewsPath);
 
 // Cabeceras de seguridad equivalentes al front controller PHP
 app.use((_req, res, next) => {
@@ -28,7 +37,7 @@ app.use((_req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(ROOT, "public")));
+app.use(express.static(path.join(process.cwd(), "public")));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "1mb" }));
