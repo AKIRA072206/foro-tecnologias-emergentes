@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    Certificado de Asistencia
    Fondo = plantilla del reconocimiento oficial (UPTYAB / Foro IA)
    ============================================================ */
@@ -108,7 +108,7 @@ body {
     pointer-events: none;
 }
 
-/* Mismo tamaño para ambos logos */
+/* Mismo tamaÃ±o para ambos logos */
 .logo-foro-cert,
 .logo-uptyab {
     width: clamp(110px, 16vw, 168px);
@@ -129,8 +129,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 22% 12% 10%;
+    justify-content: space-evenly;\r\n    padding: 19% 10% 7%;
     text-align: center;
 }
 
@@ -166,9 +165,7 @@ body {
 }
 
 .cert-title {
-    margin: 0.08rem 0;
-    font-family: var(--serif);
-    font-size: clamp(1.2rem, 3.1vw, 2.15rem);
+    margin: 0.02rem 0;\r\n    font-family: var(--serif);\r\n    font-size: clamp(1.1rem, 2.8vw, 1.95rem);
     font-weight: 700;
     letter-spacing: 0.03em;
     color: var(--navy);
@@ -184,9 +181,7 @@ body {
 }
 
 .cert-name {
-    margin: 0.04rem 0;
-    font-family: var(--serif);
-    font-size: clamp(1.35rem, 3.7vw, 2.55rem);
+    margin: 0.02rem 0;\r\n    font-family: var(--serif);\r\n    font-size: clamp(1.25rem, 3.4vw, 2.3rem);
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--navy);
@@ -203,11 +198,7 @@ body {
 }
 
 .cert-motivo {
-    margin: 0.2rem 0 0.4rem;
-    max-width: 34rem;
-    font-size: clamp(0.88rem, 1.4vw, 1.1rem);
-    font-weight: 500;
-    line-height: 1.45;
+    margin: 0.15rem 0 0.25rem;\r\n    max-width: 34rem;\r\n    font-size: clamp(0.82rem, 1.25vw, 1.02rem);\r\n    font-weight: 500;\r\n    line-height: 1.35;
     color: var(--navy);
 }
 
@@ -216,11 +207,7 @@ body {
 }
 
 .cert-colaboracion {
-    margin: 0 0 0.6rem;
-    max-width: 36rem;
-    font-size: clamp(0.68rem, 1.05vw, 0.84rem);
-    font-weight: 400;
-    line-height: 1.45;
+    margin: 0 0 0.35rem;\r\n    max-width: 38rem;\r\n    font-size: clamp(0.65rem, 0.95vw, 0.78rem);\r\n    font-weight: 400;\r\n    line-height: 1.35;
     color: var(--navy);
 }
 
@@ -282,4 +269,5 @@ body {
 /* Estado de la copia en Neon Object Storage */
 .cert-save-status { font-size: .8rem; color: #003b7a; margin-right: .5rem; }
 .cert-save-status.is-error { color: #b42318; }
+
 
