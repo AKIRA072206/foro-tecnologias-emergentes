@@ -1,0 +1,129 @@
+================================================================================
+
+GUÍA DE PROMPTS PARA OPENCODE - MIGRACIÓN DE AKIRA A LA VERSIÓN ACTUALIZADA
+
+================================================================================
+
+
+
+A continuación tienes la secuencia de prompts diseñados para que OpenCode
+
+ejecute la migración paso a paso sin romper la infraestructura desplegada
+
+en Vercel ni la base de datos en NEOM.
+
+
+
+--------------------------------------------------------------------------------
+
+PASO 1: ANÁLISIS DE DIFERENCIAS Y REVISIÓN DE COMPATIBILIDAD
+
+--------------------------------------------------------------------------------
+
+
+
+PROMPT PARA OPENCODE:
+
+"Actúa como un desarrollador Senior en Node.js y bases de datos SQL/NoSQL.
+
+Compara el repositorio/código actual (versión Akira) con la nueva versión
+
+proporcionada por mi compañera.
+
+
+
+Por favor realiza lo siguiente:
+
+1. Analiza el esquema de la base de datos de Akira (conectada a NEOM) y compáralo con los modelos/consultas de la nueva versión.
+
+2. Identifica todos los cambios breaking changes (tablas/colecciones modificadas, campos eliminados o renombrados, endpoints alterados).
+
+3. Revisa la compatibilidad de dependencias en `package.json` entre ambas versiones.
+
+4. Genera un reporte detallado en la consola listando los riesgos de migración y las variables de entorno (`.env`) requeridas por ambas versiones para garantizar que no haya fallas al desplegar en Vercel."
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+PASO 2: MIGRACIÓN DE SCHEMAS Y BASE DE DATOS (NEOM)
+
+--------------------------------------------------------------------------------
+
+
+
+PROMPT PARA OPENCODE:
+
+"Basándote en el análisis previo, vamos a preparar la base de datos en NEOM para soportar la nueva versión.
+
+
+
+Por favor realiza lo siguiente:
+
+1. Crea un script de migración en Node.js (por ejemplo, `scripts/migrate-db.js`) que aplique los cambios estructurales a NEOM de forma segura (añadir nuevas tablas/columnas o campos sin eliminar datos existentes).
+
+2. Asegúrate de incluir un mecanismo de 'rollback' o reversión por si alguna consulta falla durante la migración.
+
+3. Actualiza los modelos/ORM del proyecto (ej. Prisma, Sequelize, Mongoose o SQL nativo) en el código para que reflejen la nueva estructura.
+
+4. Valida que las credenciales de conexión a NEOM lean correctamente las variables de entorno del entorno de producción."
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+PASO 3: ACTUALIZACIÓN Y ADAPTACIÓN DE LA LÓGICA DE NEGOCIO Y ENDPOINTS
+
+--------------------------------------------------------------------------------
+
+
+
+PROMPT PARA OPENCODE:
+
+"Ahora integraremos el código actualizado de la versión de mi compañera manteniendo la arquitectura funcional en Node.js para Vercel.
+
+
+
+Por favor realiza lo siguiente:
+
+1. Integra las nuevas funciones, controladores y rutas en la estructura existente.
+
+2. Refactoriza los endpoints existentes que sufrieron cambios, asegurando que sigan manejando las peticiones de entrada y respuestas de forma consistente.
+
+3. Asegúrate de que las Serverless Functions / Server routes (si se usan en Vercel) estén correctamente configuradas y optimizadas sin sobrepasar los límites de timeout o memoria.
+
+4. Si hay código deprecado de la versión Akira, elimínalo o reemplázalo de forma limpia."
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+PASO 4: PRUEBAS LOCALES, VERIFICACIÓN Y PREPARACIÓN PARA DESPLIEGUE EN VERCEL
+
+--------------------------------------------------------------------------------
+
+
+
+PROMPT PARA OPENCODE:
+
+"Por último, debemos probar todo el sistema localmente antes de desplegar a Vercel.
+
+
+
+Por favor realiza lo siguiente:
+
+1. Ejecuta el linter y corrige cualquier error de sintaxis o de tipos.
+
+2. Crea o ejecuta un set de pruebas integradas para verificar que los endpoints clave respondan con estado 200 OK y conecten bien a la BD.
+
+3. Verifica la configuración de `vercel.json` (si aplica) y asegúrate de que el comando de build (`npm run build`) se ejecute sin errores.
+
+4. Genera un checklist final indicando las variables de entorno que debo actualizar manualmente en el panel de Vercel antes de hacer el push a producción."
+
+================================================================================

@@ -1,0 +1,4373 @@
+Directory structure:
+└── francismarsbr-sbr-foro-tecnologias-emergentes/
+    ├── README.md
+    ├── foro_backup.sql
+    ├── .htaccess
+    ├── app/
+    │   ├── controllers/
+    │   │   ├── AuthController.php
+    │   │   ├── CertificadoController.php
+    │   │   ├── HomeController.php
+    │   │   ├── LogisticaController.php
+    │   │   └── RegistroController.php
+    │   ├── core/
+    │   │   ├── Auth.php
+    │   │   ├── Controller.php
+    │   │   ├── Database.php
+    │   │   ├── Router.php
+    │   │   └── Validator.php
+    │   ├── models/
+    │   │   ├── AsistenciaModel.php
+    │   │   └── EstudianteModel.php
+    │   └── views/
+    │       ├── auth/
+    │       │   └── login.php
+    │       ├── certificados/
+    │       │   ├── index.php
+    │       │   └── ver.php
+    │       ├── home/
+    │       │   └── index.php
+    │       ├── layouts/
+    │       │   ├── footer.php
+    │       │   └── header.php
+    │       ├── logistica/
+    │       │   └── index.php
+    │       └── registro/
+    │           └── index.php
+    ├── config/
+    │   ├── auth.php
+    │   └── database.php
+    ├── database/
+    │   ├── migrate_institucion.sql
+    │   ├── migrate_validaciones.sql
+    │   └── schema.sql
+    ├── public/
+    │   ├── index.php
+    │   ├── router.php
+    │   ├── .htaccess
+    │   ├── css/
+    │   │   ├── certificado.css
+    │   │   └── style.css
+    │   └── js/
+    │       ├── app.js
+    │       └── certificado.js
+    └── scripts/
+        ├── run_migrate_institucion.php
+        └── test_db.php
+
+================================================
+FILE: README.md
+================================================
+# II Foro de Tecnologías Emergentes: Inteligencia Artificial
+
+Aplicación web MVC en PHP nativo + PostgreSQL para registro de participantes, control de asistencia y emisión de certificados digitales.
+
+**Fecha del evento:** 06 de noviembre de 2026 · 8:00 AM
+
+## Requisitos
+
+- PHP 8.1+ con extensión `pdo_pgsql`
+- PostgreSQL 13+
+- Apache con `mod_rewrite` **o** servidor embebido de PHP
+
+## Instalación rápida
+
+### 1. Clonar el repositorio
+
+```bash
+git clone <URL_DEL_REPO>
+cd foro-tecnologias-emergentes
+```
+
+### 2. Base de datos (copia incluida)
+
+En la **raíz del proyecto** está el archivo `foro_backup.sql` (volcado completo de la BD).
+
+```bash
+# Crear la base (nombre en minúsculas en PostgreSQL)
+psql -U postgres -c "CREATE DATABASE foro;"
+
+# Restaurar esquema + datos
+psql -U postgres -d foro -f foro_backup.sql
+```
+
+Si prefieres solo el esquema vacío (sin datos):
+
+```bash
+psql -U postgres -d foro -f database/schema.sql
+```
+
+### 3. Configuración
+
+Edite `config/database.php` según su entorno:
+
+| Variable / clave | Valor de ejemplo |
+|------------------|------------------|
+| host             | localhost        |
+| port             | 5432             |
+| dbname           | foro             |
+| user             | postgres         |
+| password         | *su contraseña*  |
+
+Credenciales de logística (`config/auth.php`):
+
+| Campo        | Valor por defecto |
+|--------------|-------------------|
+| Usuario      | `logistica`       |
+| Contraseña   | `foro2026`        |
+
+> En modo prueba, `forzar_asistencia` está en `true` para poder marcar asistencia y generar certificados sin esperar al 06/11/2026. Cámbielo a `null` en producción.
+
+### 4. Ejecutar
+
+```bash
+cd public
+php -S localhost:8080 router.php
+```
+
+Abra http://localhost:8080
+
+| Quién        | URL                          |
+|--------------|------------------------------|
+| Estudiantes  | http://localhost:8080/registro |
+| Logística    | http://localhost:8080/login    |
+
+## Módulos
+
+- **Registro público** — inscripción de participantes
+- **Logística** (login) — listado en vivo + select ¿Vino? (bloqueado al confirmar)
+- **Certificados** — vista imprimible y descarga PDF
+
+## Estructura
+
+```
+foro_backup.sql      # Copia de la base de datos (raíz)
+config/              # database.php, auth.php
+app/controllers/
+app/models/
+app/views/
+app/core/
+public/              # Front controller, CSS, JS, imágenes
+database/schema.sql  # Esquema vacío
+```
+
+## Seguridad
+
+- PDO + prepared statements
+- CSRF en formularios y AJAX
+- Validación cliente/servidor
+- Constraints en PostgreSQL
+- Asistencia irreversible una vez marcada como "Sí"
+
+
+
+================================================
+FILE: foro_backup.sql
+================================================
+--
+-- PostgreSQL database dump
+--
+
+\restrict 18a7kcVARtyqY0s6vS7abC6Fiehmd7zFgUEjc51BghwdVXXfSOSNA2YOeBhdcbN
+
+-- Dumped from database version 18.1
+-- Dumped by pg_dump version 18.1
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: estudiantes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.estudiantes (
+    id integer NOT NULL,
+    cedula character varying(10) NOT NULL,
+    nombre character varying(30) NOT NULL,
+    apellido character varying(30) NOT NULL,
+    fecha_nacimiento date NOT NULL,
+    edad integer NOT NULL,
+    correo character varying(150) NOT NULL,
+    telefono character varying(15) NOT NULL,
+    asistio boolean DEFAULT false NOT NULL,
+    fecha_registro timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    institution_name character varying(150) DEFAULT 'No indicó institución'::character varying NOT NULL,
+    institution_type character varying(20) DEFAULT 'no_indico'::character varying NOT NULL,
+    CONSTRAINT chk_estudiantes_apellido CHECK ((((char_length(TRIM(BOTH FROM apellido)) >= 2) AND (char_length(TRIM(BOTH FROM apellido)) <= 30)) AND ((apellido)::text ~ '^[[:alpha:]''\-]+$'::text))),
+    CONSTRAINT chk_estudiantes_cedula CHECK (((cedula)::text ~ '^[0-9]{6,10}$'::text)),
+    CONSTRAINT chk_estudiantes_correo CHECK (((correo)::text ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)),
+    CONSTRAINT chk_estudiantes_nombre CHECK ((((char_length(TRIM(BOTH FROM nombre)) >= 2) AND (char_length(TRIM(BOTH FROM nombre)) <= 30)) AND ((nombre)::text ~ '^[[:alpha:]''\-]+$'::text))),
+    CONSTRAINT chk_estudiantes_telefono CHECK (((telefono)::text ~ '^[0-9]{7,15}$'::text)),
+    CONSTRAINT estudiantes_edad_check CHECK (((edad >= 0) AND (edad <= 120)))
+);
+
+
+--
+-- Name: TABLE estudiantes; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.estudiantes IS 'Participantes registrados al II Foro de Tecnologías Emergentes';
+
+
+--
+-- Name: COLUMN estudiantes.asistio; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.estudiantes.asistio IS 'TRUE cuando logística confirma asistencia el 06/11/2026';
+
+
+--
+-- Name: estudiantes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.estudiantes_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: estudiantes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.estudiantes_id_seq OWNED BY public.estudiantes.id;
+
+
+--
+-- Name: estudiantes id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.estudiantes ALTER COLUMN id SET DEFAULT nextval('public.estudiantes_id_seq'::regclass);
+
+
+--
+-- Data for Name: estudiantes; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.estudiantes (id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono, asistio, fecha_registro, institution_name, institution_type) FROM stdin;
+1	28259274	Francismar	Sanblas	2000-08-15	26	francismar.sbr@gmail.com	04126778846	t	2026-10-19 20:01:00.654458	No indicó institución	no_indico
+3	29999111	Carla	Perez	1998-05-12	28	carla.perez.test@example.com	04145551234	f	2026-10-29 12:45:55.113864	No indicó institución	no_indico
+4	17458428	Nerson	Gimenez	1985-03-19	41	nersongimenez@gmail.com	04121541653	f	2026-10-29 13:19:20.04589	No indicó institución	no_indico
+\.
+
+
+--
+-- Name: estudiantes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.estudiantes_id_seq', 4, true);
+
+
+--
+-- Name: estudiantes estudiantes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.estudiantes
+    ADD CONSTRAINT estudiantes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: estudiantes uq_estudiantes_cedula; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.estudiantes
+    ADD CONSTRAINT uq_estudiantes_cedula UNIQUE (cedula);
+
+
+--
+-- Name: idx_estudiantes_apellido; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_estudiantes_apellido ON public.estudiantes USING btree (apellido);
+
+
+--
+-- Name: idx_estudiantes_asistio; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_estudiantes_asistio ON public.estudiantes USING btree (asistio);
+
+
+--
+-- Name: idx_estudiantes_cedula; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_estudiantes_cedula ON public.estudiantes USING btree (cedula);
+
+
+--
+-- Name: idx_estudiantes_institution_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_estudiantes_institution_type ON public.estudiantes USING btree (institution_type);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict 18a7kcVARtyqY0s6vS7abC6Fiehmd7zFgUEjc51BghwdVXXfSOSNA2YOeBhdcbN
+
+
+
+
+================================================
+FILE: .htaccess
+================================================
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirigir todo el tráfico al DocumentRoot /public
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+
+
+================================================
+FILE: app/controllers/AuthController.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\Auth;
+use App\Core\Controller;
+
+class AuthController extends Controller
+{
+    public function loginForm(): void
+    {
+        if (Auth::check()) {
+            $this->redirect('/logistica');
+        }
+
+        $this->view('auth/login', [
+            'title'   => 'Acceso Logística',
+            'page'    => 'login',
+            'csrf'    => $this->csrfToken(),
+            'error'   => null,
+            'usuario' => '',
+        ]);
+    }
+
+    public function login(): void
+    {
+        if (!$this->isPost()) {
+            $this->redirect('/login');
+        }
+
+        $csrf = (string) $this->input('_csrf', '');
+        if (!$this->verifyCsrf($csrf)) {
+            $this->view('auth/login', [
+                'title'   => 'Acceso Logística',
+                'page'    => 'login',
+                'csrf'    => $this->csrfToken(),
+                'error'   => 'Token de seguridad inválido. Recargue la página.',
+                'usuario' => '',
+            ]);
+            return;
+        }
+
+        // Pequeña pausa anti fuerza bruta
+        usleep(250000);
+
+        $usuario = trim((string) $this->input('usuario', ''));
+        $password = (string) $this->input('password', '');
+
+        if (!Auth::attempt($usuario, $password)) {
+            $this->view('auth/login', [
+                'title'   => 'Acceso Logística',
+                'page'    => 'login',
+                'csrf'    => $this->csrfToken(),
+                'error'   => 'Usuario o contraseña incorrectos.',
+                'usuario' => $usuario,
+            ]);
+            return;
+        }
+
+        $this->redirect('/logistica');
+    }
+
+    public function logout(): void
+    {
+        Auth::logout();
+        $this->redirect('/login');
+    }
+}
+
+
+
+================================================
+FILE: app/controllers/CertificadoController.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\Auth;
+use App\Core\Controller;
+use App\Models\EstudianteModel;
+use Throwable;
+
+class CertificadoController extends Controller
+{
+    private function requireAuth(): void
+    {
+        if (!Auth::check()) {
+            $this->redirect('/login');
+        }
+    }
+
+    public function index(): void
+    {
+        $this->requireAuth();
+
+        $this->view('certificados/index', [
+            'title'   => 'Consulta de Certificados',
+            'page'    => 'certificados',
+            'csrf'    => $this->csrfToken(),
+            'mensaje' => null,
+            'tipo'    => null,
+        ]);
+    }
+
+    public function buscar(): void
+    {
+        $this->requireAuth();
+
+        $cedula = preg_replace('/\D+/', '', (string) $this->input('cedula', '')) ?? '';
+
+        if ($cedula === '' || !preg_match('/^[0-9]{6,10}$/', $cedula)) {
+            $this->view('certificados/index', [
+                'title'   => 'Consulta de Certificados',
+                'page'    => 'certificados',
+                'csrf'    => $this->csrfToken(),
+                'mensaje' => 'Ingrese una cédula válida (solo números, máximo 10 dígitos).',
+                'tipo'    => 'error',
+            ]);
+            return;
+        }
+
+        try {
+            $modelo = new EstudianteModel();
+            $estudiante = $modelo->buscarPorCedula($cedula);
+
+            if ($estudiante === null) {
+                $this->view('certificados/index', [
+                    'title'   => 'Consulta de Certificados',
+                    'page'    => 'certificados',
+                    'csrf'    => $this->csrfToken(),
+                    'mensaje' => 'No se encontró un registro con esa cédula.',
+                    'tipo'    => 'error',
+                ]);
+                return;
+            }
+
+            $asistio = filter_var($estudiante['asistio'], FILTER_VALIDATE_BOOLEAN);
+            if (!$asistio) {
+                $this->view('certificados/index', [
+                    'title'   => 'Consulta de Certificados',
+                    'page'    => 'certificados',
+                    'csrf'    => $this->csrfToken(),
+                    'mensaje' => 'El participante aún no tiene asistencia confirmada. El certificado no está disponible.',
+                    'tipo'    => 'error',
+                ]);
+                return;
+            }
+
+            $this->redirect('/certificados/' . (int) $estudiante['id']);
+        } catch (Throwable $e) {
+            $this->view('certificados/index', [
+                'title'   => 'Consulta de Certificados',
+                'page'    => 'certificados',
+                'csrf'    => $this->csrfToken(),
+                'mensaje' => 'Error al consultar el certificado.',
+                'tipo'    => 'error',
+            ]);
+        }
+    }
+
+    public function ver(string $id): void
+    {
+        $this->requireAuth();
+
+        $estudianteId = filter_var($id, FILTER_VALIDATE_INT);
+        if ($estudianteId === false || $estudianteId <= 0) {
+            http_response_code(404);
+            echo 'Certificado no encontrado.';
+            return;
+        }
+
+        try {
+            $modelo = new EstudianteModel();
+            $estudiante = $modelo->buscarPorId((int) $estudianteId);
+
+            if ($estudiante === null) {
+                http_response_code(404);
+                echo 'Participante no encontrado.';
+                return;
+            }
+
+            $asistio = filter_var($estudiante['asistio'], FILTER_VALIDATE_BOOLEAN);
+            if (!$asistio) {
+                http_response_code(403);
+                $this->view('certificados/index', [
+                    'title'   => 'Consulta de Certificados',
+                    'page'    => 'certificados',
+                    'csrf'    => $this->csrfToken(),
+                    'mensaje' => 'No es posible emitir el certificado: la asistencia no está confirmada.',
+                    'tipo'    => 'error',
+                ]);
+                return;
+            }
+
+            $this->view('certificados/ver', [
+                'title'       => 'Certificado de Asistencia',
+                'page'        => 'certificado-print',
+                'estudiante'  => $estudiante,
+                'eventoFecha' => '06 de noviembre de 2026',
+                'eventoTitulo'=> 'II Foro de Tecnologías Emergentes: Inteligencia Artificial',
+            ], null);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo 'Error al generar el certificado.';
+        }
+    }
+}
+
+
+
+================================================
+FILE: app/controllers/HomeController.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+
+class HomeController extends Controller
+{
+    public function index(): void
+    {
+        // Los estudiantes reciben solo el enlace de registro
+        $this->redirect('/registro');
+    }
+}
+
+
+
+================================================
+FILE: app/controllers/LogisticaController.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\Auth;
+use App\Core\Controller;
+use App\Models\AsistenciaModel;
+use App\Models\EstudianteModel;
+use Throwable;
+
+class LogisticaController extends Controller
+{
+    private function requireAuth(): void
+    {
+        if (!Auth::check()) {
+            if ($this->isAjax()) {
+                $this->json(['ok' => false, 'mensaje' => 'Sesión expirada. Inicie sesión nuevamente.'], 401);
+            }
+            $this->redirect('/login');
+        }
+    }
+
+    public function index(): void
+    {
+        $this->requireAuth();
+
+        $estudiantes = [];
+        $error = null;
+
+        try {
+            $modelo = new EstudianteModel();
+            $estudiantes = $modelo->listarTodos();
+        } catch (Throwable $e) {
+            $error = 'No se pudieron cargar los registros. Verifique la conexión a PostgreSQL.';
+        }
+
+        $asistenciaOk = Auth::asistenciaHabilitada();
+
+        $this->view('logistica/index', [
+            'title'              => 'Logística',
+            'page'               => 'logistica',
+            'csrf'               => $this->csrfToken(),
+            'estudiantes'        => $estudiantes,
+            'error'              => $error,
+            'eventoFecha'        => '06 de noviembre de 2026',
+            'eventoHora'         => '8:00 AM',
+            'asistenciaHabilitada'=> $asistenciaOk,
+            'usuario'            => Auth::user(),
+        ]);
+    }
+
+    /** Listado JSON para refresco automático del panel */
+    public function lista(): void
+    {
+        $this->requireAuth();
+
+        try {
+            $modelo = new EstudianteModel();
+            $rows = $modelo->listarTodos();
+
+            $data = array_map(static function (array $e): array {
+                return [
+                    'id'               => (int) $e['id'],
+                    'cedula'           => (string) $e['cedula'],
+                    'nombre'           => (string) $e['nombre'],
+                    'apellido'         => (string) $e['apellido'],
+                    'correo'           => (string) $e['correo'],
+                    'telefono'           => (string) $e['telefono'],
+                    'institution_name'   => (string) ($e['institution_name'] ?? 'No indicó institución'),
+                    'institution_type'   => (string) ($e['institution_type'] ?? 'no_indico'),
+                    'asistio'            => filter_var($e['asistio'], FILTER_VALIDATE_BOOLEAN),
+                    'fecha_registro'     => (string) ($e['fecha_registro'] ?? ''),
+                ];
+            }, $rows);
+
+            $this->json([
+                'ok'                   => true,
+                'asistencia_habilitada' => Auth::asistenciaHabilitada(),
+                'total'                => count($data),
+                'asistentes'           => count(array_filter($data, static fn($r) => $r['asistio'])),
+                'estudiantes'          => $data,
+            ]);
+        } catch (Throwable $e) {
+            $this->json(['ok' => false, 'mensaje' => 'No se pudo obtener el listado.'], 500);
+        }
+    }
+
+    public function actualizarAsistencia(): void
+    {
+        $this->requireAuth();
+
+        if (!Auth::asistenciaHabilitada()) {
+            $this->json([
+                'ok'      => false,
+                'mensaje' => 'El control de asistencia se habilita el día del evento (06/11/2026).',
+            ], 403);
+        }
+
+        if (!$this->isPost()) {
+            $this->json(['ok' => false, 'mensaje' => 'Método no permitido.'], 405);
+        }
+
+        $raw = file_get_contents('php://input') ?: '';
+        $jsonBody = json_decode($raw, true);
+        $payload = is_array($jsonBody) ? array_merge($_POST, $jsonBody) : $_POST;
+
+        $csrf = (string) ($payload['_csrf'] ?? '');
+        if (!$this->verifyCsrf($csrf)) {
+            $this->json(['ok' => false, 'mensaje' => 'Token de seguridad inválido.'], 403);
+        }
+
+        $id = filter_var($payload['id'] ?? null, FILTER_VALIDATE_INT);
+        if ($id === false || $id <= 0) {
+            $this->json(['ok' => false, 'mensaje' => 'Identificador de estudiante inválido.'], 422);
+        }
+
+        $asistioRaw = $payload['asistio'] ?? null;
+        if (is_bool($asistioRaw)) {
+            $asistio = $asistioRaw;
+        } elseif (is_string($asistioRaw) || is_int($asistioRaw)) {
+            $val = strtolower((string) $asistioRaw);
+            if (in_array($val, ['1', 'true', 'yes', 'on', 'si', 'sí'], true)) {
+                $asistio = true;
+            } elseif (in_array($val, ['0', 'false', 'no', 'off'], true)) {
+                $asistio = false;
+            } else {
+                $this->json(['ok' => false, 'mensaje' => 'Valor de asistencia inválido.'], 422);
+            }
+        } else {
+            $asistio = filter_var($asistioRaw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($asistio === null) {
+                $this->json(['ok' => false, 'mensaje' => 'Valor de asistencia inválido.'], 422);
+            }
+        }
+
+        try {
+            $estudiantes = new EstudianteModel();
+            $actual = $estudiantes->buscarPorId((int) $id);
+
+            if ($actual === null) {
+                $this->json(['ok' => false, 'mensaje' => 'Estudiante no encontrado.'], 404);
+            }
+
+            $yaAsistio = filter_var($actual['asistio'], FILTER_VALIDATE_BOOLEAN);
+
+            // Una vez marcada la asistencia (Sí), no se puede modificar
+            if ($yaAsistio) {
+                $this->json([
+                    'ok'      => false,
+                    'mensaje' => 'La asistencia ya fue confirmada y no se puede modificar.',
+                    'data'    => ['id' => (int) $id, 'asistio' => true, 'bloqueado' => true],
+                ], 409);
+            }
+
+            // Solo se permite confirmar asistencia (pasar a Sí)
+            if (!(bool) $asistio) {
+                $this->json([
+                    'ok'      => true,
+                    'mensaje' => 'Sin cambios: la persona aún no ha sido marcada como asistente.',
+                    'data'    => ['id' => (int) $id, 'asistio' => false],
+                ]);
+            }
+
+            $modelo = new AsistenciaModel();
+            $resultado = $modelo->actualizarAsistencia((int) $id, true);
+
+            if ($resultado === null) {
+                $this->json(['ok' => false, 'mensaje' => 'Estudiante no encontrado.'], 404);
+            }
+
+            $this->json([
+                'ok'      => true,
+                'mensaje' => 'Asistencia confirmada: Sí vino. Este registro quedó bloqueado.',
+                'data'    => array_merge($resultado, ['bloqueado' => true]),
+            ]);
+        } catch (Throwable $e) {
+            $this->json(['ok' => false, 'mensaje' => 'Error al actualizar la asistencia.'], 500);
+        }
+    }
+
+    public function eliminar(): void
+    {
+        $this->requireAuth();
+
+        if (!$this->isPost()) {
+            $this->json(['ok' => false, 'mensaje' => 'Método no permitido.'], 405);
+        }
+
+        $raw = file_get_contents('php://input') ?: '';
+        $jsonBody = json_decode($raw, true);
+        $payload = is_array($jsonBody) ? array_merge($_POST, $jsonBody) : $_POST;
+
+        $csrf = (string) ($payload['_csrf'] ?? '');
+        if (!$this->verifyCsrf($csrf)) {
+            $this->json(['ok' => false, 'mensaje' => 'Token de seguridad inválido.'], 403);
+        }
+
+        $id = filter_var($payload['id'] ?? null, FILTER_VALIDATE_INT);
+        if ($id === false || $id <= 0) {
+            $this->json(['ok' => false, 'mensaje' => 'Identificador de asistente inválido.'], 422);
+        }
+
+        try {
+            $modelo = new EstudianteModel();
+            $actual = $modelo->buscarPorId((int) $id);
+
+            if ($actual === null) {
+                $this->json(['ok' => false, 'mensaje' => 'El registro ya no existe.'], 404);
+            }
+
+            $ok = $modelo->eliminar((int) $id);
+            if (!$ok) {
+                $this->json(['ok' => false, 'mensaje' => 'No se pudo eliminar el registro.'], 500);
+            }
+
+            $this->json([
+                'ok'      => true,
+                'mensaje' => 'Registro eliminado correctamente.',
+                'id'      => (int) $id,
+            ]);
+        } catch (Throwable $e) {
+            $this->json(['ok' => false, 'mensaje' => 'Error al eliminar el registro.'], 500);
+        }
+    }
+}
+
+
+
+================================================
+FILE: app/controllers/RegistroController.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Validator;
+use App\Models\EstudianteModel;
+use RuntimeException;
+use Throwable;
+
+class RegistroController extends Controller
+{
+    public function index(): void
+    {
+        $this->view('registro/index', [
+            'title'   => 'Registro de Asistentes',
+            'page'    => 'registro',
+            'csrf'    => $this->csrfToken(),
+            'mensaje' => null,
+            'tipo'    => null,
+            'old'     => [],
+            'errores' => [],
+        ]);
+    }
+
+    public function guardar(): void
+    {
+        $csrf = (string) $this->input('_csrf', '');
+
+        if (!$this->verifyCsrf($csrf)) {
+            $this->responderError('Token de seguridad inválido. Recargue la página.', 403);
+            return;
+        }
+
+        if (!$this->isPost()) {
+            $this->responderError('Método no permitido.', 405);
+            return;
+        }
+
+        $validator = new Validator();
+        $input = [
+            'cedula'             => (string) $this->input('cedula', ''),
+            'nombre'             => (string) $this->input('nombre', ''),
+            'apellido'           => (string) $this->input('apellido', ''),
+            'fecha_nacimiento'   => (string) $this->input('fecha_nacimiento', ''),
+            'correo'             => (string) $this->input('correo', ''),
+            'telefono'           => (string) $this->input('telefono', ''),
+            'viene_institucion'  => (string) $this->input('viene_institucion', ''),
+            'institution_type'   => (string) $this->input('institution_type', ''),
+            'institution_name'   => (string) $this->input('institution_name', ''),
+        ];
+
+        if (!$validator->validateRegistro($input)) {
+            $this->responderValidacion($validator->errors(), $input);
+            return;
+        }
+
+        $data = $validator->data();
+        $modelo = new EstudianteModel();
+
+        try {
+            if ($modelo->existePorCedula($data['cedula'])) {
+                $this->responderError('Ya existe un participante registrado con esa cédula.', 409, $input, [
+                    'cedula' => 'Esta cédula ya está registrada.',
+                ]);
+                return;
+            }
+
+            $id = $modelo->crear($data);
+
+            $mensaje = '¡Registro exitoso! Tu asistencia quedó confirmada. Número de inscripción #' . $id . '.';
+
+            if ($this->isAjax()) {
+                $this->json([
+                    'ok'      => true,
+                    'mensaje' => $mensaje,
+                    'id'      => $id,
+                ], 201);
+            }
+
+            $this->view('registro/index', [
+                'title'   => 'Registro de Asistentes',
+                'page'    => 'registro',
+                'csrf'    => $this->csrfToken(),
+                'mensaje' => $mensaje,
+                'tipo'    => 'success',
+                'old'     => [],
+                'errores' => [],
+            ]);
+        } catch (RuntimeException $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? (int) $e->getCode() : 500;
+            $this->responderError($e->getMessage(), $status, $input);
+        } catch (Throwable $e) {
+            $this->responderError('Ocurrió un error inesperado al procesar el registro.', 500, $input);
+        }
+    }
+
+    /** @param array<string, string> $errores */
+    private function responderValidacion(array $errores, array $old): void
+    {
+        if ($this->isAjax()) {
+            $this->json([
+                'ok'      => false,
+                'mensaje' => 'Revise los campos del formulario.',
+                'errores' => $errores,
+            ], 422);
+        }
+
+        $this->view('registro/index', [
+            'title'   => 'Registro de Asistentes',
+            'page'    => 'registro',
+            'csrf'    => $this->csrfToken(),
+            'mensaje' => 'Revise los campos del formulario.',
+            'tipo'    => 'error',
+            'old'     => $old,
+            'errores' => $errores,
+        ]);
+    }
+
+    /** @param array<string, string> $errores */
+    private function responderError(
+        string $mensaje,
+        int $status = 400,
+        array $old = [],
+        array $errores = []
+    ): void {
+        if ($this->isAjax()) {
+            $this->json([
+                'ok'      => false,
+                'mensaje' => $mensaje,
+                'errores' => $errores,
+            ], $status);
+        }
+
+        $this->view('registro/index', [
+            'title'   => 'Registro de Asistentes',
+            'page'    => 'registro',
+            'csrf'    => $this->csrfToken(),
+            'mensaje' => $mensaje,
+            'tipo'    => 'error',
+            'old'     => $old,
+            'errores' => $errores,
+        ]);
+    }
+}
+
+
+
+================================================
+FILE: app/core/Auth.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Core;
+
+final class Auth
+{
+    private const SESSION_KEY = 'foro_staff';
+
+    /** @return array<string, mixed> */
+    private static function config(): array
+    {
+        return require dirname(__DIR__, 2) . '/config/auth.php';
+    }
+
+    public static function attempt(string $usuario, string $password): bool
+    {
+        $config = self::config();
+        $esperadoUser = (string) ($config['usuario'] ?? '');
+        $esperadoPass = (string) ($config['password'] ?? '');
+
+        if ($usuario === '' || $password === '') {
+            return false;
+        }
+
+        if (!hash_equals($esperadoUser, $usuario) || !hash_equals($esperadoPass, $password)) {
+            return false;
+        }
+
+        session_regenerate_id(true);
+        $_SESSION[self::SESSION_KEY] = [
+            'usuario'  => $esperadoUser,
+            'login_at' => time(),
+        ];
+
+        return true;
+    }
+
+    public static function check(): bool
+    {
+        return !empty($_SESSION[self::SESSION_KEY]['usuario']);
+    }
+
+    public static function user(): ?string
+    {
+        return $_SESSION[self::SESSION_KEY]['usuario'] ?? null;
+    }
+
+    public static function logout(): void
+    {
+        unset($_SESSION[self::SESSION_KEY]);
+        session_regenerate_id(true);
+    }
+
+    public static function asistenciaHabilitada(): bool
+    {
+        $config = self::config();
+
+        if (array_key_exists('forzar_asistencia', $config) && $config['forzar_asistencia'] !== null) {
+            return (bool) $config['forzar_asistencia'];
+        }
+
+        $evento = (string) ($config['evento_fecha'] ?? '2026-11-06');
+        $hoy = (new \DateTimeImmutable('today'))->format('Y-m-d');
+
+        return $hoy >= $evento;
+    }
+}
+
+
+
+================================================
+FILE: app/core/Controller.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Core;
+
+abstract class Controller
+{
+    protected function view(string $view, array $data = [], ?string $layout = 'layouts/header'): void
+    {
+        extract($data, EXTR_SKIP);
+
+        $viewFile = dirname(__DIR__) . '/views/' . str_replace('.', '/', $view) . '.php';
+
+        if (!is_file($viewFile)) {
+            http_response_code(500);
+            echo 'Vista no encontrada.';
+            return;
+        }
+
+        if ($layout !== null) {
+            $header = dirname(__DIR__) . '/views/layouts/header.php';
+            $footer = dirname(__DIR__) . '/views/layouts/footer.php';
+            require $header;
+            require $viewFile;
+            require $footer;
+            return;
+        }
+
+        require $viewFile;
+    }
+
+    protected function json(array $payload, int $status = 200): void
+    {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+        header('X-Content-Type-Options: nosniff');
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    protected function redirect(string $path): void
+    {
+        header('Location: ' . $path);
+        exit;
+    }
+
+    protected function isPost(): bool
+    {
+        return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+    }
+
+    protected function isAjax(): bool
+    {
+        $requestedWith = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+
+        return strcasecmp($requestedWith, 'XMLHttpRequest') === 0
+            || str_contains($accept, 'application/json');
+    }
+
+    protected function csrfToken(): string
+    {
+        if (empty($_SESSION['_csrf'])) {
+            $_SESSION['_csrf'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['_csrf'];
+    }
+
+    protected function verifyCsrf(?string $token): bool
+    {
+        if ($token === null || empty($_SESSION['_csrf'])) {
+            return false;
+        }
+
+        return hash_equals($_SESSION['_csrf'], $token);
+    }
+
+    protected function input(string $key, mixed $default = null): mixed
+    {
+        return $_POST[$key] ?? $_GET[$key] ?? $default;
+    }
+}
+
+
+
+================================================
+FILE: app/core/Database.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Core;
+
+use PDO;
+use PDOException;
+use RuntimeException;
+
+/**
+ * Singleton de conexión PDO a PostgreSQL.
+ */
+final class Database
+{
+    private static ?PDO $instance = null;
+
+    private function __construct()
+    {
+    }
+
+    public static function getInstance(): PDO
+    {
+        if (self::$instance === null) {
+            $config = require dirname(__DIR__, 2) . '/config/database.php';
+
+            $dsn = sprintf(
+                '%s:host=%s;port=%s;dbname=%s',
+                $config['driver'],
+                $config['host'],
+                $config['port'],
+                $config['dbname']
+            );
+
+            try {
+                self::$instance = new PDO(
+                    $dsn,
+                    $config['user'],
+                    $config['password'],
+                    $config['options']
+                );
+                self::$instance->exec("SET NAMES 'UTF8'");
+                self::$instance->exec("SET TIME ZONE 'America/Caracas'");
+            } catch (PDOException $e) {
+                throw new RuntimeException(
+                    'No se pudo conectar a la base de datos. Verifique la configuración.',
+                    0,
+                    $e
+                );
+            }
+        }
+
+        return self::$instance;
+    }
+
+    public static function beginTransaction(): void
+    {
+        self::getInstance()->beginTransaction();
+    }
+
+    public static function commit(): void
+    {
+        self::getInstance()->commit();
+    }
+
+    public static function rollBack(): void
+    {
+        $pdo = self::getInstance();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+    }
+}
+
+
+
+================================================
+FILE: app/core/Router.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Core;
+
+/**
+ * Enrutador simple para el front controller.
+ */
+final class Router
+{
+    /** @var array<string, array<string, array{0: class-string, 1: string}>> */
+    private array $routes = [];
+
+    public function get(string $path, array $handler): void
+    {
+        $this->routes['GET'][$this->normalize($path)] = $handler;
+    }
+
+    public function post(string $path, array $handler): void
+    {
+        $this->routes['POST'][$this->normalize($path)] = $handler;
+    }
+
+    public function dispatch(string $uri, string $method): void
+    {
+        $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        $path = $this->normalize($path);
+        $method = strtoupper($method);
+
+        // Quitar prefijo /public si el DocumentRoot no apunta a public/
+        if (str_starts_with($path, '/public')) {
+            $path = substr($path, 7) ?: '/';
+            $path = $this->normalize($path);
+        }
+
+        $class = null;
+        $action = null;
+        $params = [];
+
+        if (isset($this->routes[$method][$path])) {
+            [$class, $action] = $this->routes[$method][$path];
+        } else {
+            $matched = $this->matchDynamic($method, $path);
+            if ($matched !== null) {
+                [$class, $action, $params] = $matched;
+            }
+        }
+
+        if ($class === null || $action === null) {
+            http_response_code(404);
+            echo 'Página no encontrada.';
+            return;
+        }
+
+        if (!class_exists($class)) {
+            http_response_code(500);
+            echo 'Controlador no disponible.';
+            return;
+        }
+
+        $controller = new $class();
+
+        if (!method_exists($controller, $action)) {
+            http_response_code(500);
+            echo 'Acción no disponible.';
+            return;
+        }
+
+        $controller->{$action}(...$params);
+    }
+
+    /**
+     * @return array{0: class-string, 1: string, 2: list<string>}|null
+     */
+    private function matchDynamic(string $method, string $path): ?array
+    {
+        foreach ($this->routes[$method] ?? [] as $route => $handler) {
+            if (!str_contains($route, '{')) {
+                continue;
+            }
+
+            $pattern = preg_replace('#\{([a-zA-Z_]+)\}#', '([^/]+)', $route);
+            $pattern = '#^' . $pattern . '$#';
+
+            if (preg_match($pattern, $path, $matches)) {
+                array_shift($matches);
+                return [$handler[0], $handler[1], array_values($matches)];
+            }
+        }
+
+        return null;
+    }
+
+    private function normalize(string $path): string
+    {
+        $path = '/' . trim($path, '/');
+        return $path === '/' ? '/' : rtrim($path, '/');
+    }
+}
+
+
+
+================================================
+FILE: app/core/Validator.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Core;
+
+/**
+ * Validación y sanitización de entradas del formulario de registro.
+ */
+final class Validator
+{
+    /** @var array<string, string> */
+    private array $errors = [];
+
+    /** @var array<string, mixed> */
+    private array $data = [];
+
+    public function validateRegistro(array $input): bool
+    {
+        $this->errors = [];
+        $this->data = [];
+
+        $cedula = $this->clean($input['cedula'] ?? '');
+        $nombre = $this->clean($input['nombre'] ?? '');
+        $apellido = $this->clean($input['apellido'] ?? '');
+        $fechaNacimiento = $this->clean($input['fecha_nacimiento'] ?? '');
+        $correo = strtolower($this->clean($input['correo'] ?? ''));
+        $telefono = $this->clean($input['telefono'] ?? '');
+
+        // Cédula: solo dígitos, máximo 10
+        $cedulaNorm = preg_replace('/\D+/', '', $cedula) ?? '';
+        if ($cedulaNorm === '' || !preg_match('/^[0-9]{6,10}$/', $cedulaNorm)) {
+            $this->errors['cedula'] = 'La cédula debe contener solo números (entre 6 y 10 dígitos).';
+        } else {
+            $this->data['cedula'] = $cedulaNorm;
+        }
+
+        // Solo primer nombre (sin espacios), máx. 30
+        if ($nombre === '' || mb_strlen($nombre) < 2 || mb_strlen($nombre) > 30) {
+            $this->errors['nombre'] = 'El primer nombre debe tener entre 2 y 30 caracteres.';
+        } elseif (!preg_match('/^[\p{L}\'\-]+$/u', $nombre)) {
+            $this->errors['nombre'] = 'Solo primer nombre: únicamente letras (sin espacios ni números).';
+        } else {
+            $this->data['nombre'] = mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8');
+        }
+
+        // Solo primer apellido (sin espacios), máx. 30
+        if ($apellido === '' || mb_strlen($apellido) < 2 || mb_strlen($apellido) > 30) {
+            $this->errors['apellido'] = 'El primer apellido debe tener entre 2 y 30 caracteres.';
+        } elseif (!preg_match('/^[\p{L}\'\-]+$/u', $apellido)) {
+            $this->errors['apellido'] = 'Solo primer apellido: únicamente letras (sin espacios ni números).';
+        } else {
+            $this->data['apellido'] = mb_convert_case($apellido, MB_CASE_TITLE, 'UTF-8');
+        }
+
+        if ($fechaNacimiento === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaNacimiento)) {
+            $this->errors['fecha_nacimiento'] = 'La fecha de nacimiento es obligatoria (AAAA-MM-DD).';
+        } else {
+            $fecha = \DateTimeImmutable::createFromFormat('Y-m-d', $fechaNacimiento);
+            $errors = \DateTimeImmutable::getLastErrors();
+            $invalid = ($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0;
+
+            if ($fecha === false || $invalid || $fecha->format('Y-m-d') !== $fechaNacimiento) {
+                $this->errors['fecha_nacimiento'] = 'La fecha de nacimiento no es válida.';
+            } else {
+                $hoy = new \DateTimeImmutable('today');
+                if ($fecha > $hoy) {
+                    $this->errors['fecha_nacimiento'] = 'La fecha de nacimiento no puede ser futura.';
+                } else {
+                    $edad = (int) $fecha->diff($hoy)->y;
+                    if ($edad < 12 || $edad > 100) {
+                        $this->errors['fecha_nacimiento'] = 'La edad debe estar entre 12 y 100 años.';
+                    } else {
+                        $this->data['fecha_nacimiento'] = $fechaNacimiento;
+                        $this->data['edad'] = $edad;
+                    }
+                }
+            }
+        }
+
+        if ($correo === '' || !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+            $this->errors['correo'] = 'El correo electrónico no es válido.';
+        } elseif (mb_strlen($correo) > 150) {
+            $this->errors['correo'] = 'El correo electrónico es demasiado largo.';
+        } else {
+            $this->data['correo'] = $correo;
+        }
+
+        // Teléfono: solo números
+        $telefonoNorm = preg_replace('/\D+/', '', $telefono) ?? '';
+        if ($telefonoNorm === '' || !preg_match('/^[0-9]{7,15}$/', $telefonoNorm)) {
+            $this->errors['telefono'] = 'El teléfono debe contener solo números (entre 7 y 15 dígitos).';
+        } else {
+            $this->data['telefono'] = $telefonoNorm;
+        }
+
+        $this->validarInstitucion($input);
+
+        return $this->errors === [];
+    }
+
+    /** @param array<string, mixed> $input */
+    private function validarInstitucion(array $input): void
+    {
+        $vieneRaw = strtolower($this->clean((string) ($input['viene_institucion'] ?? '')));
+        $tiposValidos = ['universidad', 'empresa', 'otra'];
+        $defaultNombre = 'No indicó institución';
+
+        if ($vieneRaw === '' || $vieneRaw === 'no') {
+            $this->data['institution_name'] = $defaultNombre;
+            $this->data['institution_type'] = 'no_indico';
+            return;
+        }
+
+        if (!in_array($vieneRaw, ['si', 'sí', 'yes', '1'], true)) {
+            $this->errors['viene_institucion'] = 'Seleccione Si o No.';
+            return;
+        }
+
+        $tipo = strtolower($this->clean((string) ($input['institution_type'] ?? '')));
+        if (!in_array($tipo, $tiposValidos, true)) {
+            $this->errors['institution_type'] = 'Indique si viene de universidad, empresa u otra institución.';
+        } else {
+            $this->data['institution_type'] = $tipo;
+        }
+
+        $nombre = $this->clean((string) ($input['institution_name'] ?? ''));
+        $nombre = preg_replace('/\s+/u', ' ', $nombre) ?? '';
+
+        if ($nombre === '' || mb_strlen($nombre) < 2) {
+            $this->errors['institution_name'] = 'Indique la universidad, empresa o institución de la que viene.';
+        } elseif (mb_strlen($nombre) > 150) {
+            $this->errors['institution_name'] = 'El nombre de la institución es demasiado largo.';
+        } else {
+            $this->data['institution_name'] = $nombre;
+        }
+
+        if (!isset($this->data['institution_name'])) {
+            $this->data['institution_name'] = $defaultNombre;
+        }
+        if (!isset($this->data['institution_type'])) {
+            $this->data['institution_type'] = 'no_indico';
+        }
+    }
+
+    /** @return array<string, string> */
+    public function errors(): array
+    {
+        return $this->errors;
+    }
+
+    /** @return array<string, mixed> */
+    public function data(): array
+    {
+        return $this->data;
+    }
+
+    public function firstError(): string
+    {
+        return $this->errors === [] ? '' : (string) reset($this->errors);
+    }
+
+    private function clean(string $value): string
+    {
+        $value = trim($value);
+        return preg_replace('/[\x00-\x1F\x7F]/u', '', $value) ?? '';
+    }
+}
+
+
+
+================================================
+FILE: app/models/AsistenciaModel.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use App\Core\Database;
+use PDO;
+use PDOException;
+use RuntimeException;
+
+class AsistenciaModel
+{
+    private PDO $db;
+
+    public function __construct()
+    {
+        $this->db = Database::getInstance();
+    }
+
+    /**
+     * Actualiza el flag asistio de forma transaccional.
+     *
+     * @return array{id: int, asistio: bool}|null
+     */
+    public function actualizarAsistencia(int $id, bool $asistio): ?array
+    {
+        $sql = 'UPDATE estudiantes
+                SET asistio = :asistio
+                WHERE id = :id
+                RETURNING id, asistio';
+
+        try {
+            Database::beginTransaction();
+
+            $stmt = $this->db->prepare($sql);
+            // PostgreSQL PDO: boolean como 't'/'f' evita ambigüedad del driver
+            $stmt->bindValue(':asistio', $asistio ? 't' : 'f', PDO::PARAM_STR);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $row = $stmt->fetch();
+
+            if ($row === false) {
+                Database::rollBack();
+                return null;
+            }
+
+            Database::commit();
+
+            return [
+                'id'      => (int) $row['id'],
+                'asistio' => filter_var($row['asistio'], FILTER_VALIDATE_BOOLEAN),
+            ];
+        } catch (PDOException $e) {
+            Database::rollBack();
+            throw new RuntimeException('No se pudo actualizar la asistencia.', 500, $e);
+        }
+    }
+
+    public function haAsistido(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            'SELECT asistio FROM estudiantes WHERE id = :id LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $value = $stmt->fetchColumn();
+        if ($value === false) {
+            return false;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+}
+
+
+
+================================================
+FILE: app/models/EstudianteModel.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use App\Core\Database;
+use PDO;
+use PDOException;
+use RuntimeException;
+
+class EstudianteModel
+{
+    private PDO $db;
+
+    public const DEFAULT_INSTITUTION = 'No indicó institución';
+
+    public function __construct()
+    {
+        $this->db = Database::getInstance();
+    }
+
+    /**
+     * @param array{
+     *   cedula: string,
+     *   nombre: string,
+     *   apellido: string,
+     *   fecha_nacimiento: string,
+     *   edad: int,
+     *   correo: string,
+     *   telefono: string,
+     *   institution_name: string,
+     *   institution_type: string
+     * } $data
+     */
+    public function crear(array $data): int
+    {
+        $institutionName = trim((string) ($data['institution_name'] ?? ''));
+        if ($institutionName === '') {
+            $institutionName = self::DEFAULT_INSTITUTION;
+        }
+        $institutionType = strtolower(trim((string) ($data['institution_type'] ?? 'no_indico')));
+        if (!in_array($institutionType, ['universidad', 'empresa', 'otra', 'no_indico'], true)) {
+            $institutionType = 'no_indico';
+        }
+
+        $sql = 'INSERT INTO estudiantes
+                (cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono,
+                 institution_name, institution_type)
+                VALUES
+                (:cedula, :nombre, :apellido, :fecha_nacimiento, :edad, :correo, :telefono,
+                 :institution_name, :institution_type)
+                RETURNING id';
+
+        try {
+            Database::beginTransaction();
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':cedula', $data['cedula'], PDO::PARAM_STR);
+            $stmt->bindValue(':nombre', $data['nombre'], PDO::PARAM_STR);
+            $stmt->bindValue(':apellido', $data['apellido'], PDO::PARAM_STR);
+            $stmt->bindValue(':fecha_nacimiento', $data['fecha_nacimiento'], PDO::PARAM_STR);
+            $stmt->bindValue(':edad', $data['edad'], PDO::PARAM_INT);
+            $stmt->bindValue(':correo', $data['correo'], PDO::PARAM_STR);
+            $stmt->bindValue(':telefono', $data['telefono'], PDO::PARAM_STR);
+            $stmt->bindValue(':institution_name', $institutionName, PDO::PARAM_STR);
+            $stmt->bindValue(':institution_type', $institutionType, PDO::PARAM_STR);
+            $stmt->execute();
+
+            $id = (int) $stmt->fetchColumn();
+            Database::commit();
+
+            return $id;
+        } catch (PDOException $e) {
+            Database::rollBack();
+
+            // Violación de unicidad (cedula)
+            if ($e->getCode() === '23505') {
+                throw new RuntimeException('Ya existe un registro con esa cédula.', 409, $e);
+            }
+
+            error_log('Error al guardar estudiante: ' . $e->getMessage());
+            throw new RuntimeException('Error al guardar el registro.', 500, $e);
+        }
+    }
+
+    public function existePorCedula(string $cedula): bool
+    {
+        $stmt = $this->db->prepare('SELECT 1 FROM estudiantes WHERE cedula = :cedula LIMIT 1');
+        $stmt->bindValue(':cedula', $cedula, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function listarTodos(): array
+    {
+        $stmt = $this->db->query(
+            'SELECT id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono,
+                    institution_name, institution_type, asistio, fecha_registro
+             FROM estudiantes
+             ORDER BY apellido ASC, nombre ASC'
+        );
+
+        return $stmt->fetchAll();
+    }
+
+    public function buscarPorId(int $id): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono,
+                    institution_name, institution_type, asistio, fecha_registro
+             FROM estudiantes
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $row = $stmt->fetch();
+        return $row === false ? null : $row;
+    }
+
+    public function buscarPorCedula(string $cedula): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono,
+                    institution_name, institution_type, asistio, fecha_registro
+             FROM estudiantes
+             WHERE cedula = :cedula
+             LIMIT 1'
+        );
+        $stmt->bindValue(':cedula', $cedula, PDO::PARAM_STR);
+        $stmt->execute();
+
+        $row = $stmt->fetch();
+        return $row === false ? null : $row;
+    }
+
+    public function eliminar(int $id): bool
+    {
+        try {
+            Database::beginTransaction();
+
+            $stmt = $this->db->prepare('DELETE FROM estudiantes WHERE id = :id');
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $deleted = $stmt->rowCount() > 0;
+
+            Database::commit();
+
+            return $deleted;
+        } catch (PDOException $e) {
+            Database::rollBack();
+            throw new RuntimeException('No se pudo eliminar el registro.', 500, $e);
+        }
+    }
+}
+
+
+
+================================================
+FILE: app/views/auth/login.php
+================================================
+<section class="section py-4 py-md-5">
+    <div class="container" style="max-width: 480px;">
+        <header class="section-head mb-4 text-center">
+            <img src="/img/logo-foro-cert.png" alt="Logo II Foro" class="mb-3" width="120" height="120"
+                 style="object-fit:contain;border-radius:16px;background:transparent;box-shadow:0 8px 24px rgba(0,27,72,.12);">
+            <span class="badge rounded-pill text-bg-primary mb-2">Acceso restringido · Personal</span>
+            <h1 class="h3 mb-1">Iniciar sesión</h1>
+            <p class="text-muted mb-0">Panel de logística — II Foro de Tecnologías Emergentes</p>
+        </header>
+
+        <?php if (!empty($error)): ?>
+            <div class="alert alert-danger" role="alert">
+                <?= htmlspecialchars((string) $error, ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
+
+        <form class="card shadow-sm border-0 p-3 p-md-4" method="POST" action="/login" autocomplete="off">
+            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+
+            <div class="mb-3">
+                <label class="form-label" for="usuario">Usuario</label>
+                <input type="text" class="form-control" id="usuario" name="usuario" maxlength="60" required
+                       value="<?= htmlspecialchars((string) ($usuario ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                       autocomplete="username">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label" for="password">Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password" maxlength="120" required
+                       autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Entrar al panel</button>
+        </form>
+    </div>
+</section>
+
+
+
+================================================
+FILE: app/views/certificados/index.php
+================================================
+<section class="section py-4 py-md-5">
+    <div class="container" style="max-width: 560px;">
+        <header class="section-head mb-4">
+            <h1 class="h3 mb-1">Certificados de asistencia</h1>
+            <p class="text-muted mb-0">Consulte el certificado con la cédula. Solo disponible si se marcó asistencia.</p>
+        </header>
+
+        <?php if (!empty($mensaje)): ?>
+            <div class="alert alert-<?= ($tipo ?? '') === 'error' ? 'danger' : htmlspecialchars((string) $tipo, ENT_QUOTES, 'UTF-8') ?>" role="status">
+                <?= htmlspecialchars((string) $mensaje, ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
+
+        <form class="card shadow-sm border-0 p-3 p-md-4" method="GET" action="/certificados/buscar" novalidate>
+            <div class="mb-3">
+                <label class="form-label" for="cedula-cert">Cédula</label>
+                <input type="text" class="form-control" id="cedula-cert" name="cedula" maxlength="10"
+                       inputmode="numeric" pattern="[0-9]{6,10}"
+                       placeholder="Ingrese su número de cédula" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Buscar certificado</button>
+        </form>
+    </div>
+</section>
+
+
+
+================================================
+FILE: app/views/certificados/ver.php
+================================================
+<?php
+$nombreCompleto = mb_strtoupper(
+    trim(($estudiante['nombre'] ?? '') . ' ' . ($estudiante['apellido'] ?? '')),
+    'UTF-8'
+);
+$cedulaRaw = preg_replace('/\D+/', '', (string) ($estudiante['cedula'] ?? '')) ?? '';
+$cedulaFmt = $cedulaRaw !== ''
+    ? 'V - ' . number_format((int) $cedulaRaw, 0, ',', '.')
+    : '';
+$archivoPdf = 'Certificado_Asistencia_' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $nombreCompleto) . '.pdf';
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificado de Asistencia — <?= htmlspecialchars($nombreCompleto, ENT_QUOTES, 'UTF-8') ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=PT+Serif:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/certificado.css">
+</head>
+<body class="cert-page">
+    <div class="cert-toolbar no-print">
+        <a href="/certificados" class="btn-tool">← Volver</a>
+        <div class="cert-toolbar-actions">
+            <button type="button" class="btn-tool" id="btn-imprimir">Imprimir</button>
+            <button type="button" class="btn-tool btn-tool-primary" id="btn-descargar-pdf">Descargar PDF</button>
+        </div>
+    </div>
+
+    <div class="cert-viewport">
+        <article class="certificate" id="certificado" aria-label="Certificado de asistencia"
+                 data-filename="<?= htmlspecialchars($archivoPdf, ENT_QUOTES, 'UTF-8') ?>"
+                 data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES, 'UTF-8') ?>"
+                 data-cedula="<?= htmlspecialchars($cedulaFmt, ENT_QUOTES, 'UTF-8') ?>"
+                 data-template="/img/plantilla-certificado.pdf">
+            <img class="cert-bg" src="/img/plantilla-certificado-hd.png" alt="Plantilla del certificado">
+            <div class="cert-overlay">
+                <p class="cert-name"><?= htmlspecialchars($nombreCompleto, ENT_QUOTES, 'UTF-8') ?></p>
+                <p class="cert-cedula"><?= htmlspecialchars($cedulaFmt, ENT_QUOTES, 'UTF-8') ?></p>
+            </div>
+        </article>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="/js/certificado.js"></script>
+</body>
+</html>
+
+
+
+================================================
+FILE: app/views/home/index.php
+================================================
+<section class="hero">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="container hero-content">
+        <p class="hero-kicker">Evento · 06 de noviembre de 2026 · 8:00 AM</p>
+        <h1>II Foro de Tecnologías Emergentes</h1>
+        <p class="hero-lead">Inteligencia Artificial — inscríbete con el formulario de registro.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="/registro">Ir al registro</a>
+        </div>
+    </div>
+</section>
+
+
+
+================================================
+FILE: app/views/layouts/footer.php
+================================================
+</main>
+    <footer class="site-footer mt-auto">
+        <div class="container text-center py-4">
+            <p class="mb-1 fw-semibold">II Foro de Tecnologías Emergentes: Inteligencia Artificial · UPTYAB</p>
+            <p class="mb-0 text-muted small">06 de noviembre de 2026 · 8:00 AM</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+            crossorigin="anonymous"></script>
+    <script src="/js/app.js" defer></script>
+</body>
+</html>
+
+
+
+================================================
+FILE: app/views/layouts/header.php
+================================================
+<?php
+$page = $page ?? '';
+$title = $title ?? 'II Foro de Tecnologías Emergentes';
+$isStaff = in_array($page, ['logistica', 'certificados'], true);
+$brandHref = $isStaff ? '/logistica' : ($page === 'login' ? '/login' : '/registro');
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="II Foro de Tecnologías Emergentes: Inteligencia Artificial — 06 de noviembre de 2026">
+    <meta name="robots" content="noindex, nofollow">
+    <title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="page-<?= htmlspecialchars($page, ENT_QUOTES, 'UTF-8') ?> d-flex flex-column min-vh-100">
+    <a class="skip-link visually-hidden-focusable" href="#contenido">Saltar al contenido</a>
+
+    <div class="cintillo-institucional" role="banner">
+        <img src="/img/cintillo.jpg" alt="Ministerio del Poder Popular para la Educación Universitaria — Universidad Politécnica Territorial de Yaracuy Arístides Bastidas">
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-foro sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="<?= htmlspecialchars($brandHref, ENT_QUOTES, 'UTF-8') ?>">
+                <img src="/img/logo-foro-cert.png" alt="II Foro Tecnologías Emergentes — Inteligencia Artificial"
+                     class="brand-logo" width="72" height="72">
+                <span class="brand-text d-none d-sm-flex flex-column lh-sm">
+                    <strong>II Foro</strong>
+                    <small>Tecnologías Emergentes · IA</small>
+                </span>
+            </a>
+
+            <?php if ($isStaff): ?>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navStaff"
+                    aria-controls="navStaff" aria-expanded="false" aria-label="Menú">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navStaff">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                    <li class="nav-item">
+                        <a class="nav-link <?= $page === 'logistica' ? 'active' : '' ?>" href="/logistica">Logística</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $page === 'certificados' ? 'active' : '' ?>" href="/certificados">Certificados</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light btn-sm ms-lg-2" href="/logout">Salir</a>
+                    </li>
+                </ul>
+            </div>
+            <?php endif; ?>
+        </div>
+    </nav>
+
+    <main id="contenido" class="site-main flex-grow-1">
+
+
+
+================================================
+FILE: app/views/logistica/index.php
+================================================
+<?php
+$estudiantes = $estudiantes ?? [];
+$error = $error ?? null;
+$asistenciaHabilitada = !empty($asistenciaHabilitada);
+$total = count($estudiantes);
+$asistentes = count(array_filter($estudiantes, static fn($e) => filter_var($e['asistio'], FILTER_VALIDATE_BOOLEAN)));
+$colspan = $asistenciaHabilitada ? 9 : 8;
+
+$labelTipo = static function (string $tipo): string {
+    return match ($tipo) {
+        'universidad' => 'Universidad',
+        'empresa'     => 'Empresa',
+        'otra'        => 'Otra institución',
+        default       => 'No indicó',
+    };
+};
+?>
+<section class="section py-4">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+            <div>
+                <h1 class="h3 mb-1">Panel de logística</h1>
+                <p class="text-muted mb-0">
+                    Evento: <?= htmlspecialchars($eventoFecha, ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars($eventoHora, ENT_QUOTES, 'UTF-8') ?>
+                    · Sesión: <strong><?= htmlspecialchars((string) ($usuario ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>
+                </p>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <span class="badge text-bg-primary fs-6"><span id="stat-total"><?= $total ?></span> registrados</span>
+                <?php if ($asistenciaHabilitada): ?>
+                    <span class="badge text-bg-success fs-6"><span id="stat-asistentes"><?= $asistentes ?></span> asistieron</span>
+                <?php endif; ?>
+                <a class="btn btn-outline-primary btn-sm" href="/logout">Cerrar sesión</a>
+            </div>
+        </div>
+
+        <?php if ($asistenciaHabilitada): ?>
+            <div class="alert alert-success" role="status">
+                Modo prueba activo: use el selector <strong>¿Vino?</strong> para marcar asistencia y generar certificados.
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info" role="status">
+                Listado de inscritos en vivo. El control de asistencia se habilitará el <strong>06 de noviembre de 2026</strong>.
+            </div>
+        <?php endif; ?>
+
+        <?php if ($error): ?>
+            <div class="alert alert-danger"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="flex-grow-1" style="max-width: 360px;">
+                <label class="visually-hidden" for="buscador">Buscar</label>
+                <input type="search" class="form-control" id="buscador"
+                       placeholder="Buscar por cédula o apellido…" autocomplete="off">
+            </div>
+            <p class="text-muted small mb-0">Actualización automática cada 15 s</p>
+        </div>
+
+        <div class="filtro-procedencia mb-3" role="group" aria-label="Filtrar por procedencia">
+            <span class="filtro-label">Procedencia:</span>
+            <button type="button" class="btn btn-sm btn-primary filtro-tipo is-active" data-tipo="todos">Todos</button>
+            <button type="button" class="btn btn-sm btn-outline-primary filtro-tipo" data-tipo="universidad">Universidad</button>
+            <button type="button" class="btn btn-sm btn-outline-primary filtro-tipo" data-tipo="empresa">Empresa</button>
+            <button type="button" class="btn btn-sm btn-outline-primary filtro-tipo" data-tipo="otra">Otra Institución</button>
+            <button type="button" class="btn btn-sm btn-outline-primary filtro-tipo" data-tipo="no_indico">No indicó</button>
+        </div>
+
+        <div class="table-responsive card shadow-sm border-0">
+            <table class="table table-hover table-striped align-middle mb-0" id="tabla-asistencia"
+                   data-asistencia="<?= $asistenciaHabilitada ? '1' : '0' ?>">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Cédula</th>
+                        <th>Apellido</th>
+                        <th>Nombre</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <th>Institución</th>
+                        <?php if ($asistenciaHabilitada): ?>
+                            <th>¿Vino?</th>
+                            <th>Certificado</th>
+                        <?php else: ?>
+                            <th>Registro</th>
+                        <?php endif; ?>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-estudiantes">
+                <?php if ($estudiantes === []): ?>
+                    <tr class="empty-row">
+                        <td colspan="<?= $colspan ?>" class="text-center text-muted py-4">No hay participantes registrados aún.</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($estudiantes as $est): ?>
+                        <?php
+                        $asistio = filter_var($est['asistio'], FILTER_VALIDATE_BOOLEAN);
+                        $id = (int) $est['id'];
+                        $fechaReg = !empty($est['fecha_registro'])
+                            ? date('d/m/Y H:i', strtotime((string) $est['fecha_registro']))
+                            : '—';
+                        $tipoInst = (string) ($est['institution_type'] ?? 'no_indico');
+                        $nombreInst = (string) ($est['institution_name'] ?? 'No indicó institución');
+                        ?>
+                        <tr data-id="<?= $id ?>"
+                            data-cedula="<?= htmlspecialchars(strtolower((string) $est['cedula']), ENT_QUOTES, 'UTF-8') ?>"
+                            data-apellido="<?= htmlspecialchars(mb_strtolower((string) $est['apellido'], 'UTF-8'), ENT_QUOTES, 'UTF-8') ?>"
+                            data-tipo="<?= htmlspecialchars($tipoInst, ENT_QUOTES, 'UTF-8') ?>">
+                            <td><?= htmlspecialchars((string) $est['cedula'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars((string) $est['apellido'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars((string) $est['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars((string) $est['correo'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars((string) $est['telefono'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td>
+                                <span class="badge text-bg-light border"><?= htmlspecialchars($labelTipo($tipoInst), ENT_QUOTES, 'UTF-8') ?></span>
+                                <div class="small text-muted"><?= htmlspecialchars($nombreInst, ENT_QUOTES, 'UTF-8') ?></div>
+                            </td>
+                            <?php if ($asistenciaHabilitada): ?>
+                                <td>
+                                    <?php if ($asistio): ?>
+                                        <select class="form-select form-select-sm select-asistencia" data-id="<?= $id ?>" disabled
+                                                title="Asistencia confirmada: no se puede modificar"
+                                                aria-label="Asistencia confirmada de <?= htmlspecialchars((string) $est['nombre'] . ' ' . $est['apellido'], ENT_QUOTES, 'UTF-8') ?>">
+                                            <option value="1" selected>Sí</option>
+                                        </select>
+                                    <?php else: ?>
+                                        <select class="form-select form-select-sm select-asistencia" data-id="<?= $id ?>"
+                                                aria-label="Asistencia de <?= htmlspecialchars((string) $est['nombre'] . ' ' . $est['apellido'], ENT_QUOTES, 'UTF-8') ?>">
+                                            <option value="0" selected>No</option>
+                                            <option value="1">Sí</option>
+                                        </select>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="cell-cert">
+                                    <?php if ($asistio): ?>
+                                        <a class="btn btn-sm btn-outline-primary" href="/certificados/<?= $id ?>" target="_blank" rel="noopener">Ver</a>
+                                    <?php else: ?>
+                                        <span class="text-muted">—</span>
+                                    <?php endif; ?>
+                                </td>
+                            <?php else: ?>
+                                <td><?= htmlspecialchars($fechaReg, ENT_QUOTES, 'UTF-8') ?></td>
+                            <?php endif; ?>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar"
+                                        data-id="<?= $id ?>"
+                                        data-nombre="<?= htmlspecialchars((string) $est['nombre'] . ' ' . $est['apellido'], ENT_QUOTES, 'UTF-8') ?>">
+                                    Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <input type="hidden" id="csrf-logistica" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+        <p id="toast-logistica" class="toast" role="status" aria-live="polite"></p>
+    </div>
+</section>
+
+<div class="confirm-modal" id="modal-eliminar" hidden role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-titulo">
+    <div class="confirm-modal-backdrop" data-close-confirm></div>
+    <div class="confirm-modal-card">
+        <h2 id="modal-eliminar-titulo">Eliminar registro</h2>
+        <p id="modal-eliminar-texto">¿Seguro que desea eliminar este asistente? Esta acción no se puede deshacer.</p>
+        <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-ghost" data-close-confirm>Cancelar</button>
+            <button type="button" class="btn btn-danger" id="btn-confirmar-eliminar">Sí, eliminar</button>
+        </div>
+    </div>
+</div>
+
+
+
+================================================
+FILE: app/views/registro/index.php
+================================================
+<?php
+$old = $old ?? [];
+$errores = $errores ?? [];
+$mensaje = $mensaje ?? null;
+$tipo = $tipo ?? null;
+
+function old_val(array $old, string $key): string {
+    return htmlspecialchars((string) ($old[$key] ?? ''), ENT_QUOTES, 'UTF-8');
+}
+function err_class(array $errores, string $key): string {
+    return isset($errores[$key]) ? ' is-invalid' : '';
+}
+?>
+<section class="section section-registro py-4 py-md-5">
+    <div class="container" style="max-width: 760px;">
+        <header class="section-head mb-4">
+            <span class="badge rounded-pill text-bg-primary mb-2">06 de noviembre de 2026 · 8:00 AM</span>
+            <h1 class="h2 mb-1">Registro de Asistentes</h1>
+            <p class="text-muted mb-0">II Foro de Tecnologías Emergentes: Inteligencia Artificial</p>
+        </header>
+
+        <div id="alerta"
+             class="alert<?= $mensaje ? ' alert-' . ($tipo === 'error' ? 'danger' : htmlspecialchars((string) $tipo, ENT_QUOTES, 'UTF-8')) . ' show' : ' d-none' ?>"
+             role="status" aria-live="polite">
+            <?= $mensaje ? htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8') : '' ?>
+        </div>
+
+        <form id="form-registro" class="card shadow-sm border-0 p-3 p-md-4" method="POST" action="/registro" novalidate>
+            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="cedula">Cédula <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control<?= err_class($errores, 'cedula') ?>" id="cedula" name="cedula"
+                           maxlength="10" inputmode="numeric" pattern="[0-9]{6,10}"
+                           placeholder="Ingrese su número de cédula"
+                           value="<?= old_val($old, 'cedula') ?>" autocomplete="off" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="cedula"><?= isset($errores['cedula']) ? htmlspecialchars($errores['cedula'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="nombre">Primer nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control<?= err_class($errores, 'nombre') ?>" id="nombre" name="nombre"
+                           maxlength="30" placeholder="Ingrese su primer nombre"
+                           value="<?= old_val($old, 'nombre') ?>" autocomplete="given-name" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="nombre"><?= isset($errores['nombre']) ? htmlspecialchars($errores['nombre'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="apellido">Primer apellido <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control<?= err_class($errores, 'apellido') ?>" id="apellido" name="apellido"
+                           maxlength="30" placeholder="Ingrese su primer apellido"
+                           value="<?= old_val($old, 'apellido') ?>" autocomplete="family-name" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="apellido"><?= isset($errores['apellido']) ? htmlspecialchars($errores['apellido'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="fecha_nacimiento">Fecha de nacimiento <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control<?= err_class($errores, 'fecha_nacimiento') ?>" id="fecha_nacimiento"
+                           name="fecha_nacimiento" value="<?= old_val($old, 'fecha_nacimiento') ?>"
+                           placeholder="Ingrese su fecha de nacimiento"
+                           max="<?= date('Y-m-d') ?>" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="fecha_nacimiento"><?= isset($errores['fecha_nacimiento']) ? htmlspecialchars($errores['fecha_nacimiento'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="edad">Edad</label>
+                    <input type="text" class="form-control" id="edad" name="edad_display" readonly
+                           placeholder="Su edad se calcula automáticamente" value="" tabindex="-1" aria-readonly="true">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="correo">Correo electrónico <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control<?= err_class($errores, 'correo') ?>" id="correo" name="correo"
+                           maxlength="150" placeholder="Ingrese su correo electrónico"
+                           value="<?= old_val($old, 'correo') ?>" autocomplete="email" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="correo"><?= isset($errores['correo']) ? htmlspecialchars($errores['correo'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="telefono">Teléfono <span class="text-danger">*</span></label>
+                    <input type="tel" class="form-control<?= err_class($errores, 'telefono') ?>" id="telefono" name="telefono"
+                           maxlength="15" inputmode="numeric" pattern="[0-9]{7,15}"
+                           placeholder="Ingrese su número de teléfono"
+                           value="<?= old_val($old, 'telefono') ?>" autocomplete="tel" required>
+                    <div class="invalid-feedback d-block field-error" data-error-for="telefono"><?= isset($errores['telefono']) ? htmlspecialchars($errores['telefono'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="viene_institucion">¿Vienes de otra universidad, empresa o institución?</label>
+                    <?php $vieneOld = old_val($old, 'viene_institucion'); ?>
+                    <select class="form-select<?= err_class($errores, 'viene_institucion') ?>" id="viene_institucion" name="viene_institucion">
+                        <option value="" <?= $vieneOld === '' ? 'selected' : '' ?>>Seleccione…</option>
+                        <option value="no" <?= $vieneOld === 'no' ? 'selected' : '' ?>>No</option>
+                        <option value="si" <?= in_array($vieneOld, ['si', 'sí'], true) ? 'selected' : '' ?>>Sí</option>
+                    </select>
+                    <div class="invalid-feedback d-block field-error" data-error-for="viene_institucion"><?= isset($errores['viene_institucion']) ? htmlspecialchars($errores['viene_institucion'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <?php
+                $showInst = in_array($vieneOld, ['si', 'sí'], true);
+                $tipoOld = old_val($old, 'institution_type');
+                ?>
+                <div class="col-md-6 inst-extra<?= $showInst ? '' : ' d-none' ?>" id="wrap-tipo-institucion">
+                    <label class="form-label" for="institution_type">Tipo de procedencia</label>
+                    <select class="form-select<?= err_class($errores, 'institution_type') ?>" id="institution_type" name="institution_type">
+                        <option value="">Seleccione…</option>
+                        <option value="universidad" <?= $tipoOld === 'universidad' ? 'selected' : '' ?>>Universidad</option>
+                        <option value="empresa" <?= $tipoOld === 'empresa' ? 'selected' : '' ?>>Empresa</option>
+                        <option value="otra" <?= $tipoOld === 'otra' ? 'selected' : '' ?>>Otra institución</option>
+                    </select>
+                    <div class="invalid-feedback d-block field-error" data-error-for="institution_type"><?= isset($errores['institution_type']) ? htmlspecialchars($errores['institution_type'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <div class="col-md-6 inst-extra<?= $showInst ? '' : ' d-none' ?>" id="wrap-nombre-institucion">
+                    <label class="form-label" for="institution_name">Indica la universidad, empresa o institución de la que vienes</label>
+                    <input type="text" class="form-control<?= err_class($errores, 'institution_name') ?>" id="institution_name"
+                           name="institution_name" maxlength="150"
+                           placeholder="Indica la universidad, empresa o institución de la que vienes"
+                           value="<?= old_val($old, 'institution_name') ?>">
+                    <div class="invalid-feedback d-block field-error" data-error-for="institution_name"><?= isset($errores['institution_name']) ? htmlspecialchars($errores['institution_name'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary px-4" id="btn-registrar">Registrar</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<div class="success-modal<?= ($tipo ?? '') === 'success' ? ' is-open' : '' ?>" id="modal-registro-exito" role="dialog"
+     aria-modal="true" aria-labelledby="modal-exito-titulo" <?= ($tipo ?? '') === 'success' ? '' : 'hidden' ?>>
+    <div class="success-modal-backdrop" data-close-modal></div>
+    <div class="success-modal-card">
+        <div class="success-check" aria-hidden="true">
+            <svg viewBox="0 0 72 72">
+                <circle class="success-check-ring" cx="36" cy="36" r="32"></circle>
+                <path class="success-check-mark" d="M20 37.5 L31.5 49 L53 24"></path>
+            </svg>
+        </div>
+        <p class="success-kicker">II Foro · Inteligencia Artificial</p>
+        <h2 id="modal-exito-titulo">¡Asistencia registrada!</h2>
+        <p class="success-text" id="modal-exito-mensaje">
+            <?= ($tipo ?? '') === 'success' && !empty($mensaje)
+                ? htmlspecialchars((string) $mensaje, ENT_QUOTES, 'UTF-8')
+                : 'Tu registro se guardó correctamente. ¡Te esperamos el 06 de noviembre de 2026!' ?>
+        </p>
+        <div class="success-actions">
+            <button type="button" class="btn btn-primary" data-close-modal>Cerrar</button>
+        </div>
+    </div>
+</div>
+
+
+
+================================================
+FILE: config/auth.php
+================================================
+<?php
+/**
+ * Credenciales del personal de logística.
+ */
+
+return [
+    'usuario' => getenv('FORO_USER') ?: 'logistica',
+    'password' => getenv('FORO_PASS') ?: 'foro2026',
+
+    // Fecha del evento: a partir de este día se habilita el select de asistencia
+    'evento_fecha' => '2026-11-06',
+
+    // null = automático por fecha | true/false = forzar
+    // true = pruebas: asistencia y certificados disponibles ya
+    'forzar_asistencia' => true,
+];
+
+
+
+================================================
+FILE: config/database.php
+================================================
+<?php
+/**
+ * Configuración de conexión PostgreSQL (PDO)
+ * Base de datos: Foro
+ */
+
+return [
+    'driver'   => 'pgsql',
+    'host'     => getenv('DB_HOST') ?: 'localhost',
+    'port'     => getenv('DB_PORT') ?: '5432',
+    'dbname'   => getenv('DB_NAME') ?: 'foro',
+    'user'     => getenv('DB_USER') ?: 'postgres',
+    'password' => getenv('DB_PASS') ?: '123456789',
+    'charset'  => 'utf8',
+    'options'  => [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+        PDO::ATTR_PERSISTENT         => false,
+    ],
+];
+
+
+
+================================================
+FILE: database/migrate_institucion.sql
+================================================
+-- Agrega procedencia (institución / empresa) a asistentes existentes
+BEGIN;
+
+ALTER TABLE estudiantes
+    ADD COLUMN IF NOT EXISTS institution_name VARCHAR(150);
+
+ALTER TABLE estudiantes
+    ADD COLUMN IF NOT EXISTS institution_type VARCHAR(20);
+
+UPDATE estudiantes
+SET institution_name = 'No indicó institución'
+WHERE institution_name IS NULL
+   OR btrim(institution_name) = '';
+
+UPDATE estudiantes
+SET institution_type = 'no_indico'
+WHERE institution_type IS NULL
+   OR btrim(institution_type) = '';
+
+ALTER TABLE estudiantes
+    ALTER COLUMN institution_name SET DEFAULT 'No indicó institución';
+
+ALTER TABLE estudiantes
+    ALTER COLUMN institution_type SET DEFAULT 'no_indico';
+
+ALTER TABLE estudiantes
+    ALTER COLUMN institution_name SET NOT NULL;
+
+ALTER TABLE estudiantes
+    ALTER COLUMN institution_type SET NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_estudiantes_institution_type ON estudiantes (institution_type);
+
+COMMIT;
+
+
+
+================================================
+FILE: database/migrate_validaciones.sql
+================================================
+-- Actualiza restricciones de la tabla estudiantes (cédula, nombre, apellido, teléfono)
+BEGIN;
+
+ALTER TABLE estudiantes DROP CONSTRAINT IF EXISTS chk_estudiantes_cedula;
+ALTER TABLE estudiantes DROP CONSTRAINT IF EXISTS chk_estudiantes_telefono;
+ALTER TABLE estudiantes DROP CONSTRAINT IF EXISTS chk_estudiantes_nombre;
+ALTER TABLE estudiantes DROP CONSTRAINT IF EXISTS chk_estudiantes_apellido;
+
+-- Normalizar datos existentes incompatibles (opcional: revisar antes en producción)
+UPDATE estudiantes SET cedula = regexp_replace(cedula, '\D', '', 'g');
+UPDATE estudiantes SET telefono = regexp_replace(telefono, '\D', '', 'g');
+
+ALTER TABLE estudiantes
+    ALTER COLUMN cedula TYPE VARCHAR(10),
+    ALTER COLUMN nombre TYPE VARCHAR(30),
+    ALTER COLUMN apellido TYPE VARCHAR(30),
+    ALTER COLUMN telefono TYPE VARCHAR(15);
+
+ALTER TABLE estudiantes
+    ADD CONSTRAINT chk_estudiantes_cedula CHECK (cedula ~ '^[0-9]{6,10}$'),
+    ADD CONSTRAINT chk_estudiantes_telefono CHECK (telefono ~ '^[0-9]{7,15}$'),
+    ADD CONSTRAINT chk_estudiantes_nombre CHECK (
+        char_length(trim(nombre)) BETWEEN 2 AND 30
+        AND nombre ~ '^[[:alpha:]''\-]+$'
+    ),
+    ADD CONSTRAINT chk_estudiantes_apellido CHECK (
+        char_length(trim(apellido)) BETWEEN 2 AND 30
+        AND apellido ~ '^[[:alpha:]''\-]+$'
+    );
+
+COMMIT;
+
+
+
+================================================
+FILE: database/schema.sql
+================================================
+-- ============================================================
+-- II Foro de Tecnologías Emergentes: Inteligencia Artificial
+-- Script de inicialización - Base de datos: foro
+-- ============================================================
+
+-- CREATE DATABASE foro WITH ENCODING 'UTF8';
+-- \c foro
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS estudiantes (
+    id               SERIAL PRIMARY KEY,
+    cedula           VARCHAR(10)  NOT NULL,
+    nombre           VARCHAR(30)  NOT NULL,
+    apellido         VARCHAR(30)  NOT NULL,
+    fecha_nacimiento DATE         NOT NULL,
+    edad             INT          NOT NULL CHECK (edad >= 0 AND edad <= 120),
+    correo           VARCHAR(150) NOT NULL,
+    telefono         VARCHAR(15)  NOT NULL,
+    institution_name VARCHAR(150) NOT NULL DEFAULT 'No indicó institución',
+    institution_type VARCHAR(20)  NOT NULL DEFAULT 'no_indico',
+    asistio          BOOLEAN      NOT NULL DEFAULT FALSE,
+    fecha_registro   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_estudiantes_cedula UNIQUE (cedula),
+    CONSTRAINT chk_estudiantes_correo CHECK (
+        correo ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+    ),
+    CONSTRAINT chk_estudiantes_cedula CHECK (
+        cedula ~ '^[0-9]{6,10}$'
+    ),
+    CONSTRAINT chk_estudiantes_telefono CHECK (
+        telefono ~ '^[0-9]{7,15}$'
+    ),
+    CONSTRAINT chk_estudiantes_nombre CHECK (
+        char_length(trim(nombre)) BETWEEN 2 AND 30
+        AND nombre ~ '^[[:alpha:]''\-]+$'
+    ),
+    CONSTRAINT chk_estudiantes_apellido CHECK (
+        char_length(trim(apellido)) BETWEEN 2 AND 30
+        AND apellido ~ '^[[:alpha:]''\-]+$'
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_estudiantes_apellido ON estudiantes (apellido);
+CREATE INDEX IF NOT EXISTS idx_estudiantes_asistio ON estudiantes (asistio);
+CREATE INDEX IF NOT EXISTS idx_estudiantes_cedula ON estudiantes (cedula);
+CREATE INDEX IF NOT EXISTS idx_estudiantes_institution_type ON estudiantes (institution_type);
+
+COMMENT ON TABLE estudiantes IS 'Asistentes registrados al II Foro de Tecnologías Emergentes';
+COMMENT ON COLUMN estudiantes.asistio IS 'TRUE cuando logística confirma asistencia el 06/11/2026';
+COMMENT ON COLUMN estudiantes.nombre IS 'Solo primer nombre';
+COMMENT ON COLUMN estudiantes.apellido IS 'Solo primer apellido';
+COMMENT ON COLUMN estudiantes.institution_name IS 'Universidad, empresa o institución de procedencia';
+COMMENT ON COLUMN estudiantes.institution_type IS 'universidad | empresa | otra | no_indico';
+
+COMMIT;
+
+
+
+================================================
+FILE: public/index.php
+================================================
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Front Controller — II Foro de Tecnologías Emergentes
+ */
+
+session_start([
+    'cookie_httponly' => true,
+    'cookie_samesite' => 'Lax',
+    'use_strict_mode' => true,
+]);
+
+// Cabeceras de seguridad básicas
+header('X-Frame-Options: SAMEORIGIN');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:;");
+
+define('BASE_PATH', dirname(__DIR__));
+
+spl_autoload_register(static function (string $class): void {
+    $prefix = 'App\\';
+    if (!str_starts_with($class, $prefix)) {
+        return;
+    }
+
+    $relative = substr($class, strlen($prefix));
+    $parts = explode('\\', $relative);
+
+    // App\Controllers\X -> app/controllers/X.php
+    if (isset($parts[0])) {
+        $parts[0] = strtolower($parts[0]);
+    }
+
+    $path = BASE_PATH . '/app/' . implode('/', $parts) . '.php';
+
+    if (is_file($path)) {
+        require_once $path;
+    }
+});
+
+use App\Controllers\AuthController;
+use App\Controllers\CertificadoController;
+use App\Controllers\HomeController;
+use App\Controllers\LogisticaController;
+use App\Controllers\RegistroController;
+use App\Core\Router;
+
+$router = new Router();
+
+$router->get('/', [HomeController::class, 'index']);
+$router->get('/registro', [RegistroController::class, 'index']);
+$router->post('/registro', [RegistroController::class, 'guardar']);
+
+$router->get('/login', [AuthController::class, 'loginForm']);
+$router->post('/login', [AuthController::class, 'login']);
+$router->get('/logout', [AuthController::class, 'logout']);
+
+$router->get('/logistica', [LogisticaController::class, 'index']);
+$router->get('/logistica/lista', [LogisticaController::class, 'lista']);
+$router->post('/logistica/asistencia', [LogisticaController::class, 'actualizarAsistencia']);
+$router->post('/logistica/eliminar', [LogisticaController::class, 'eliminar']);
+
+$router->get('/certificados', [CertificadoController::class, 'index']);
+$router->get('/certificados/buscar', [CertificadoController::class, 'buscar']);
+$router->get('/certificados/{id}', [CertificadoController::class, 'ver']);
+
+$uri = $_SERVER['REQUEST_URI'] ?? '/';
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+$router->dispatch($uri, $method);
+
+
+
+================================================
+FILE: public/router.php
+================================================
+<?php
+
+/**
+ * Router para el servidor embebido de PHP:
+ *   php -S localhost:8080 router.php
+ */
+
+$uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/');
+$file = __DIR__ . $uri;
+
+if ($uri !== '/' && is_file($file)) {
+    return false;
+}
+
+require __DIR__ . '/index.php';
+
+
+
+================================================
+FILE: public/.htaccess
+================================================
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Servir archivos y directorios existentes tal cual
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Enviar todo al front controller
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# Bloquear acceso a archivos sensibles si se exponen
+<FilesMatch "\.(env|sql|md|json|lock)$">
+    Require all denied
+</FilesMatch>
+
+
+
+================================================
+FILE: public/css/certificado.css
+================================================
+/* ============================================================
+   Certificado: plantilla oficial (PDF/PNG HD) + nombre y cédula
+   Coordenadas en % respecto al diploma (Letter apaisado 792×612)
+   ============================================================ */
+
+:root {
+    --navy: #0a214d;
+    --serif: "PT Serif", "Libre Baskerville", "Times New Roman", Georgia, serif;
+    /* Hueco entre "Otorgado a" y "Por haber asistido al" */
+    --overlay-top: 27.4%;
+    --overlay-height: 11.6%;
+    --name-size: 3.15cqi;
+    --cedula-size: 1.65cqi;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.cert-page {
+    min-height: 100vh;
+    background: #d7e0ec;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--navy);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.cert-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    width: min(100% - 2rem, 1100px);
+    margin: 1rem auto;
+}
+
+.cert-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.btn-tool:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.btn-tool {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.65rem 1.15rem;
+    border-radius: 999px;
+    border: 1px solid #90a4ae;
+    background: #fff;
+    color: var(--navy);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-tool-primary {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+}
+
+.cert-viewport {
+    width: min(100% - 1.25rem, 1100px);
+    margin: 0 auto 2rem;
+}
+
+.certificate {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 792 / 612;
+    background: #fff;
+    overflow: hidden;
+    box-shadow: 0 20px 55px rgba(0, 18, 51, 0.22);
+    container-type: inline-size;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.cert-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    z-index: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+.cert-overlay {
+    position: absolute;
+    top: var(--overlay-top);
+    left: 12%;
+    width: 76%;
+    height: var(--overlay-height);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
+}
+
+.cert-name {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: var(--name-size);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--navy);
+    text-transform: uppercase;
+    line-height: 1.12;
+    max-width: 100%;
+}
+
+.cert-cedula {
+    margin: 0.35cqi 0 0;
+    font-family: var(--serif);
+    font-size: var(--cedula-size);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--navy);
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .cert-page {
+        background: #fff;
+    }
+
+    .cert-viewport {
+        width: 100%;
+        margin: 0;
+    }
+
+    .certificate {
+        width: 100%;
+        height: 100vh;
+        aspect-ratio: auto;
+        box-shadow: none;
+    }
+
+    @page {
+        size: landscape;
+        margin: 0;
+    }
+}
+
+
+
+================================================
+FILE: public/css/style.css
+================================================
+:root {
+    --bg: #eef2f8;
+    --bg-deep: #dce6f4;
+    --surface: #ffffff;
+    --ink: #001b48;
+    --ink-soft: #1a335c;
+    --muted: #5a6f8a;
+    --line: #b8c7dc;
+    --accent: #1a4b8f;
+    --accent-deep: #001b48;
+    --accent-soft: #d6e8fb;
+    --cyan: #00b7e6;
+    --purple: #6a2fb1;
+    --danger: #9b2c2c;
+    --danger-soft: #fde8e8;
+    --success: #1565c0;
+    --success-soft: #e3f2fd;
+    --shadow: 0 18px 40px rgba(0, 27, 72, 0.10);
+    --radius: 16px;
+    --font: "Montserrat", Arial, Helvetica, sans-serif;
+    --display: "Libre Baskerville", "Times New Roman", Georgia, serif;
+    --max: 1100px;
+
+    /* Bootstrap theme overrides */
+    --bs-primary: #1a4b8f;
+    --bs-primary-rgb: 26, 75, 143;
+    --bs-link-color: #0d47a1;
+    --bs-link-hover-color: #001b48;
+    --bs-body-font-family: var(--font);
+    --bs-body-color: var(--ink);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--ink);
+    background:
+        radial-gradient(circle at 10% 8%, rgba(41, 182, 246, 0.18), transparent 42%),
+        radial-gradient(circle at 92% 0%, rgba(13, 71, 161, 0.14), transparent 38%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    min-height: 100vh;
+    line-height: 1.55;
+}
+
+img {
+    max-width: 100%;
+}
+
+a {
+    color: var(--accent-deep);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+.container {
+    width: min(100% - 2rem, var(--max));
+    margin-inline: auto;
+}
+
+.container.narrow {
+    width: min(100% - 2rem, 720px);
+}
+
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--ink);
+    color: #fff;
+    padding: 0.75rem 1rem;
+    z-index: 100;
+}
+
+.skip-link:focus {
+    left: 1rem;
+    top: 1rem;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Navbar + logo */
+.cintillo-institucional {
+    background: #fff;
+    border-bottom: 1px solid #d9e0ea;
+    line-height: 0;
+}
+
+.cintillo-institucional img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 92px;
+    object-fit: contain;
+    object-position: center;
+    background: #fff;
+}
+
+.navbar-foro {
+    background: linear-gradient(105deg, #001b48 0%, #1a4b8f 48%, #6a2fb1 100%);
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+}
+
+.navbar-foro .navbar-brand {
+    color: #fff;
+    text-decoration: none;
+}
+
+.navbar-foro .navbar-brand:hover {
+    color: #fff;
+}
+
+.brand-logo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: transparent;
+    padding: 2px;
+}
+
+.brand-text strong {
+    font-family: var(--display);
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+.brand-text small {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.navbar-foro .nav-link {
+    color: rgba(255, 255, 255, 0.88) !important;
+    font-weight: 600;
+}
+
+.navbar-foro .nav-link:hover,
+.navbar-foro .nav-link.active {
+    color: #fff !important;
+}
+
+.navbar-foro .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.navbar-foro .navbar-toggler-icon {
+    filter: invert(1);
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--accent);
+    --bs-btn-border-color: var(--accent);
+    --bs-btn-hover-bg: var(--accent-deep);
+    --bs-btn-hover-border-color: var(--accent-deep);
+    --bs-btn-active-bg: var(--accent-deep);
+    --bs-btn-active-border-color: var(--accent-deep);
+}
+
+/* Hero */
+.hero {
+    position: relative;
+    overflow: hidden;
+    padding: 4.5rem 0 3.5rem;
+}
+
+.hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(120deg, rgba(13, 71, 161, 0.16), transparent 52%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23001b48' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    animation: fadeIn 1s ease both;
+}
+
+.hero-content {
+    position: relative;
+}
+
+.hero-kicker,
+.event-badge {
+    display: inline-block;
+    margin: 0 0 1rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(13, 71, 161, 0.12);
+    color: var(--accent-deep);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    animation: rise 0.7s ease both;
+}
+
+.hero h1 {
+    margin: 0;
+    max-width: 14ch;
+    font-family: var(--display);
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    animation: rise 0.8s ease 0.05s both;
+}
+
+.hero-lead {
+    margin: 1.25rem 0 1.75rem;
+    max-width: 38rem;
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+    animation: rise 0.8s ease 0.12s both;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    animation: rise 0.8s ease 0.18s both;
+}
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Sections */
+.section {
+    padding: 2.5rem 0 3.5rem;
+}
+
+.section-head {
+    margin-bottom: 1.5rem;
+}
+
+.section-head h1 {
+    margin: 0 0 0.4rem;
+    font-family: var(--display);
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+}
+
+.section-head p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.section-head-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: end;
+}
+
+.stats {
+    display: flex;
+    gap: 1.25rem;
+    color: var(--ink-soft);
+}
+
+.stats strong {
+    color: var(--accent-deep);
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+}
+
+.feature {
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feature:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 44px rgba(26, 36, 33, 0.12);
+}
+
+.feature h2 {
+    margin: 0 0 0.5rem;
+    font-family: var(--display);
+    font-size: 1.35rem;
+}
+
+.feature p {
+    margin: 0 0 1rem;
+    color: var(--ink-soft);
+}
+
+.feature a {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--accent-deep);
+    color: #fff;
+}
+
+.btn-ghost {
+    background: transparent;
+    border-color: var(--line);
+    color: var(--ink);
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* Forms */
+.form-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 1.15rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.field label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+}
+
+.field input,
+.search-field input {
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input:focus,
+.search-field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(41, 182, 246, 0.28);
+}
+
+.field input[readonly] {
+    background: #eef3fa;
+    color: var(--muted);
+}
+
+.field-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.field.has-error input {
+    border-color: var(--danger);
+}
+
+.field-error {
+    min-height: 1.1rem;
+    font-size: 0.8rem;
+    color: var(--danger);
+}
+
+.form-actions {
+    margin-top: 1.25rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Alerts */
+.alert {
+    display: none;
+    margin-bottom: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.alert.is-visible {
+    display: block;
+}
+
+.alert-success {
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1px solid #b7e0c4;
+}
+
+.alert-error {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border: 1px solid #f0b4b4;
+}
+
+.alert-info {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    border: 1px solid #90caf9;
+}
+
+.form-grid-single {
+    grid-template-columns: 1fr;
+}
+
+.btn-sm {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+.toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.refresh-note {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.select-asistencia {
+    min-width: 88px;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.select-asistencia:focus {
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px rgba(41, 182, 246, 0.25);
+}
+
+/* Logística */
+.toolbar {
+    margin-bottom: 1rem;
+}
+
+.search-field {
+    display: block;
+    max-width: 360px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+}
+
+.data-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    background: #eaf1fa;
+}
+
+.data-table tbody tr:hover {
+    background: rgba(13, 71, 161, 0.05);
+}
+
+.data-table tbody tr.is-hidden,
+#tabla-asistencia tbody tr.is-hidden {
+    display: none;
+}
+
+.filtro-procedencia {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.filtro-label {
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-right: 0.25rem;
+}
+
+.filtro-tipo.is-active,
+.filtro-tipo.btn-primary {
+    color: #fff;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+    border-color: var(--danger);
+}
+
+.btn-danger:hover {
+    background: #7a1f1f;
+    color: #fff;
+}
+
+.empty-row td {
+    text-align: center;
+    color: var(--muted);
+    padding: 2rem 1rem;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.link-cert {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* Toggle */
+.toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-ui {
+    width: 46px;
+    height: 26px;
+    border-radius: 999px;
+    background: #9eb0c7;
+    position: relative;
+    transition: background 0.2s ease;
+}
+
+.toggle-ui::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.toggle input:checked + .toggle-ui {
+    background: var(--accent);
+}
+
+.toggle input:checked + .toggle-ui::after {
+    transform: translateX(20px);
+}
+
+.toggle input:focus-visible + .toggle-ui {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.toast {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    margin: 0;
+    padding: 0.85rem 1.1rem;
+    border-radius: 12px;
+    background: var(--ink);
+    color: #fff;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 80;
+}
+
+.toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.is-error {
+    background: var(--danger);
+}
+
+/* Modal de registro exitoso */
+.success-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+
+.success-modal.is-open {
+    display: flex;
+}
+
+.success-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 18, 51, 0.55);
+    backdrop-filter: blur(4px);
+}
+
+.success-modal-card {
+    position: relative;
+    width: min(100%, 460px);
+    padding: 2.1rem 1.6rem 1.6rem;
+    border-radius: 24px;
+    background:
+        radial-gradient(circle at 12% 0%, rgba(0, 183, 230, 0.22), transparent 46%),
+        radial-gradient(circle at 100% 0%, rgba(106, 47, 177, 0.2), transparent 42%),
+        #fff;
+    box-shadow: 0 28px 70px rgba(0, 27, 72, 0.28);
+    text-align: center;
+    animation: modalPop 0.45s cubic-bezier(0.2, 0.9, 0.2, 1.2) both;
+}
+
+@keyframes modalPop {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.success-check {
+    width: 92px;
+    height: 92px;
+    margin: 0 auto 0.85rem;
+}
+
+.success-check svg {
+    width: 100%;
+    height: 100%;
+}
+
+.success-check-ring {
+    fill: none;
+    stroke: #00b7e6;
+    stroke-width: 4;
+    stroke-dasharray: 201;
+    stroke-dashoffset: 201;
+    animation: drawRing 0.7s ease forwards;
+}
+
+.success-check-mark {
+    fill: none;
+    stroke: #1a4b8f;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: drawCheck 0.45s 0.45s ease forwards;
+}
+
+@keyframes drawRing {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes drawCheck {
+    to { stroke-dashoffset: 0; }
+}
+
+.success-kicker {
+    margin: 0 0 0.35rem;
+    color: var(--purple);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+}
+
+.success-modal-card h2 {
+    margin: 0 0 0.55rem;
+    font-family: var(--display);
+    color: var(--ink);
+    font-size: 1.7rem;
+}
+
+.success-text {
+    margin: 0 0 1.25rem;
+    color: var(--ink-soft);
+}
+
+.success-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.confirm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+
+.confirm-modal.is-open {
+    display: flex;
+}
+
+.confirm-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 18, 51, 0.5);
+}
+
+.confirm-modal-card {
+    position: relative;
+    width: min(100%, 420px);
+    padding: 1.5rem;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: var(--shadow);
+}
+
+.confirm-modal-card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+}
+
+/* Footer */
+.site-footer {
+    margin-top: auto;
+    padding: 2rem 0;
+    border-top: 1px solid rgba(213, 205, 184, 0.8);
+}
+
+.footer-inner {
+    text-align: center;
+}
+
+.footer-inner p {
+    margin: 0.15rem 0;
+}
+
+.site-main {
+    min-height: calc(100vh - 160px);
+}
+
+@media (max-width: 860px) {
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+
+
+================================================
+FILE: public/js/app.js
+================================================
+(() => {
+  "use strict";
+
+  const CEDULA_RE = /^[0-9]{6,10}$/;
+  const NOMBRE_RE = /^[\p{L}'\-]+$/u;
+  const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  const TELEFONO_RE = /^[0-9]{7,15}$/;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initRegistro();
+    initLogistica();
+  });
+
+  function soloDigitos(value, max) {
+    return String(value || "").replace(/\D+/g, "").slice(0, max);
+  }
+
+  function soloLetrasNombre(value, max) {
+    return String(value || "")
+      .replace(/[^\p{L}'\-]/gu, "")
+      .slice(0, max);
+  }
+
+  function calcularEdad(fechaISO) {
+    if (!fechaISO) return "";
+    const nacimiento = new Date(fechaISO + "T00:00:00");
+    if (Number.isNaN(nacimiento.getTime())) return "";
+
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const m = hoy.getMonth() - nacimiento.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad -= 1;
+    }
+    return edad >= 0 ? String(edad) : "";
+  }
+
+  function setError(field, message) {
+    const slot = document.querySelector(`[data-error-for="${field.id}"]`);
+    field.classList.toggle("is-invalid", Boolean(message));
+    if (slot) slot.textContent = message || "";
+  }
+
+  function clearErrors(form) {
+    form.querySelectorAll(".is-invalid").forEach((f) => f.classList.remove("is-invalid"));
+    form.querySelectorAll(".field-error").forEach((e) => {
+      e.textContent = "";
+    });
+  }
+
+  function showAlert(el, message, type) {
+    if (!el) return;
+    const bsType = type === "error" ? "danger" : type;
+    el.textContent = message;
+    el.className = `alert alert-${bsType} show`;
+    el.classList.remove("d-none");
+  }
+
+  function validarRegistro(form) {
+    clearErrors(form);
+    let ok = true;
+
+    const cedula = soloDigitos(form.cedula.value, 10);
+    const nombre = soloLetrasNombre(form.nombre.value.trim(), 30);
+    const apellido = soloLetrasNombre(form.apellido.value.trim(), 30);
+    const fecha = form.fecha_nacimiento.value;
+    const correo = form.correo.value.trim().toLowerCase();
+    const telefono = soloDigitos(form.telefono.value, 15);
+    const viene = String(form.viene_institucion?.value || "").toLowerCase();
+
+    form.cedula.value = cedula;
+    form.nombre.value = nombre;
+    form.apellido.value = apellido;
+    form.correo.value = correo;
+    form.telefono.value = telefono;
+
+    if (!CEDULA_RE.test(cedula)) {
+      setError(form.cedula, "La cédula debe tener solo números (6 a 10 dígitos).");
+      ok = false;
+    }
+
+    if (nombre.length < 2 || !NOMBRE_RE.test(nombre)) {
+      setError(form.nombre, "Ingrese solo su primer nombre (letras, máx. 30).");
+      ok = false;
+    }
+
+    if (apellido.length < 2 || !NOMBRE_RE.test(apellido)) {
+      setError(form.apellido, "Ingrese solo su primer apellido (letras, máx. 30).");
+      ok = false;
+    }
+
+    const edad = Number(calcularEdad(fecha));
+    if (!fecha || Number.isNaN(edad) || edad < 12 || edad > 100) {
+      setError(form.fecha_nacimiento, "Fecha inválida. La edad debe estar entre 12 y 100 años.");
+      ok = false;
+    }
+
+    if (!EMAIL_RE.test(correo)) {
+      setError(form.correo, "Correo electrónico inválido.");
+      ok = false;
+    }
+
+    if (!TELEFONO_RE.test(telefono)) {
+      setError(form.telefono, "El teléfono debe tener solo números (7 a 15 dígitos).");
+      ok = false;
+    }
+
+    if (viene === "si" || viene === "sí") {
+      const tipo = String(form.institution_type?.value || "");
+      const instNombre = String(form.institution_name?.value || "").trim();
+      if (!["universidad", "empresa", "otra"].includes(tipo)) {
+        setError(form.institution_type, "Indique si viene de universidad, empresa u otra institución.");
+        ok = false;
+      }
+      if (instNombre.length < 2) {
+        setError(form.institution_name, "Indique la universidad, empresa o institución de la que viene.");
+        ok = false;
+      }
+    }
+
+    return ok;
+  }
+
+  function toggleInstitucion(form) {
+    const viene = String(form.viene_institucion?.value || "").toLowerCase();
+    const show = viene === "si" || viene === "sí";
+    document.querySelectorAll(".inst-extra").forEach((el) => {
+      el.classList.toggle("d-none", !show);
+    });
+    if (!show && form.institution_name) {
+      form.institution_name.value = "";
+      if (form.institution_type) form.institution_type.value = "";
+    }
+  }
+
+  function openSuccessModal(message) {
+    const modal = document.getElementById("modal-registro-exito");
+    const slot = document.getElementById("modal-exito-mensaje");
+    if (!modal) return;
+    if (slot && message) slot.textContent = message;
+    modal.hidden = false;
+    modal.classList.add("is-open");
+  }
+
+  function closeSuccessModal() {
+    const modal = document.getElementById("modal-registro-exito");
+    if (!modal) return;
+    modal.classList.remove("is-open");
+    modal.hidden = true;
+  }
+
+  function initRegistro() {
+    const form = document.getElementById("form-registro");
+    if (!form) return;
+
+    const fecha = form.fecha_nacimiento;
+    const edadInput = form.edad;
+    const alerta = document.getElementById("alerta");
+    const btn = document.getElementById("btn-registrar");
+
+    form.cedula.addEventListener("input", () => {
+      form.cedula.value = soloDigitos(form.cedula.value, 10);
+    });
+    form.telefono.addEventListener("input", () => {
+      form.telefono.value = soloDigitos(form.telefono.value, 15);
+    });
+    form.nombre.addEventListener("input", () => {
+      form.nombre.value = soloLetrasNombre(form.nombre.value, 30);
+    });
+    form.apellido.addEventListener("input", () => {
+      form.apellido.value = soloLetrasNombre(form.apellido.value, 30);
+    });
+
+    const syncEdad = () => {
+      edadInput.value = calcularEdad(fecha.value);
+    };
+
+    fecha.addEventListener("change", syncEdad);
+    fecha.addEventListener("input", syncEdad);
+    syncEdad();
+
+    if (form.viene_institucion) {
+      form.viene_institucion.addEventListener("change", () => toggleInstitucion(form));
+      toggleInstitucion(form);
+    }
+
+    document.querySelectorAll("[data-close-modal]").forEach((el) => {
+      el.addEventListener("click", closeSuccessModal);
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!validarRegistro(form)) {
+        showAlert(alerta, "Revise los campos del formulario.", "error");
+        return;
+      }
+
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = "Guardando…";
+
+      try {
+        const body = new FormData(form);
+        const response = await fetch("/registro", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body,
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.ok) {
+          if (data?.errores) {
+            Object.entries(data.errores).forEach(([key, msg]) => {
+              const field = form.elements.namedItem(key);
+              if (field && field instanceof HTMLElement) setError(field, msg);
+            });
+          }
+          showAlert(alerta, data?.mensaje || "No se pudo completar el registro.", "error");
+          return;
+        }
+
+        form.reset();
+        edadInput.value = "";
+        toggleInstitucion(form);
+        clearErrors(form);
+        if (alerta) alerta.classList.add("d-none");
+        openSuccessModal(data.mensaje);
+      } catch (err) {
+        showAlert(alerta, "Error de red. Intente nuevamente.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+      }
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function initLogistica() {
+    const tabla = document.getElementById("tabla-asistencia");
+    const tbody = document.getElementById("tbody-estudiantes");
+    const buscador = document.getElementById("buscador");
+    const csrf = document.getElementById("csrf-logistica");
+    const toast = document.getElementById("toast-logistica");
+    if (!tabla || !tbody || !csrf) return;
+
+    let asistenciaHabilitada = tabla.dataset.asistencia === "1";
+    let filtroTipo = "todos";
+    let pendingDeleteId = null;
+
+    const mostrarToast = (msg, isError = false) => {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.toggle("is-error", isError);
+      toast.classList.add("is-visible");
+      clearTimeout(mostrarToast._t);
+      mostrarToast._t = setTimeout(() => toast.classList.remove("is-visible"), 2800);
+    };
+
+    const labelTipo = (tipo) => {
+      if (tipo === "universidad") return "Universidad";
+      if (tipo === "empresa") return "Empresa";
+      if (tipo === "otra") return "Otra institución";
+      return "No indicó";
+    };
+
+    const aplicarFiltro = () => {
+      const q = buscador ? buscador.value.trim().toLowerCase() : "";
+      tbody.querySelectorAll("tr").forEach((row) => {
+        if (row.classList.contains("empty-row")) return;
+        const cedula = row.dataset.cedula || "";
+        const apellido = row.dataset.apellido || "";
+        const tipo = row.dataset.tipo || "no_indico";
+        const matchTexto = !q || cedula.includes(q) || apellido.includes(q);
+        const matchTipo = filtroTipo === "todos" || tipo === filtroTipo;
+        row.classList.toggle("is-hidden", !(matchTexto && matchTipo));
+      });
+    };
+
+    const formatFecha = (raw) => {
+      if (!raw) return "—";
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return "—";
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const celdaInstitucion = (e) => {
+      const tipo = String(e.institution_type || "no_indico");
+      const nombreInst = escapeHtml(e.institution_name || "No indicó institución");
+      return `<span class="badge text-bg-light border">${escapeHtml(labelTipo(tipo))}</span>
+              <div class="small text-muted">${nombreInst}</div>`;
+    };
+
+    const botonEliminar = (e, nombre, apellido) =>
+      `<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${e.id}" data-nombre="${nombre} ${apellido}">Eliminar</button>`;
+
+    const renderFilas = (estudiantes) => {
+      const cols = asistenciaHabilitada ? 9 : 8;
+      if (!estudiantes.length) {
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="${cols}">No hay participantes registrados aún.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = estudiantes
+        .map((e) => {
+          const nombre = escapeHtml(e.nombre);
+          const apellido = escapeHtml(e.apellido);
+          const cedula = escapeHtml(e.cedula);
+          const correo = escapeHtml(e.correo);
+          const telefono = escapeHtml(e.telefono);
+          const cedulaKey = String(e.cedula).toLowerCase();
+          const apellidoKey = String(e.apellido).toLowerCase();
+          const tipo = escapeHtml(String(e.institution_type || "no_indico"));
+          const inst = celdaInstitucion(e);
+          const eliminar = botonEliminar(e, nombre, apellido);
+
+          if (asistenciaHabilitada) {
+            const cert = e.asistio
+              ? `<a class="btn btn-sm btn-outline-primary" href="/certificados/${e.id}" target="_blank" rel="noopener">Ver</a>`
+              : `<span class="text-muted">—</span>`;
+            const selectHtml = e.asistio
+              ? `<select class="form-select form-select-sm select-asistencia" data-id="${e.id}" disabled title="Asistencia confirmada: no se puede modificar" aria-label="Asistencia confirmada de ${nombre} ${apellido}">
+                  <option value="1" selected>Sí</option>
+                </select>`
+              : `<select class="form-select form-select-sm select-asistencia" data-id="${e.id}" aria-label="Asistencia de ${nombre} ${apellido}">
+                  <option value="0" selected>No</option>
+                  <option value="1">Sí</option>
+                </select>`;
+            return `<tr data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}" data-tipo="${tipo}">
+              <td>${cedula}</td><td>${apellido}</td><td>${nombre}</td><td>${correo}</td><td>${telefono}</td>
+              <td>${inst}</td>
+              <td>${selectHtml}</td>
+              <td class="cell-cert">${cert}</td>
+              <td>${eliminar}</td>
+            </tr>`;
+          }
+
+          return `<tr data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}" data-tipo="${tipo}">
+            <td>${cedula}</td><td>${apellido}</td><td>${nombre}</td><td>${correo}</td><td>${telefono}</td>
+            <td>${inst}</td>
+            <td>${escapeHtml(formatFecha(e.fecha_registro))}</td>
+            <td>${eliminar}</td>
+          </tr>`;
+        })
+        .join("");
+
+      aplicarFiltro();
+    };
+
+    const actualizarStats = (total, asistentes) => {
+      const totalEl = document.getElementById("stat-total");
+      const asisEl = document.getElementById("stat-asistentes");
+      if (totalEl) totalEl.textContent = String(total);
+      if (asisEl) asisEl.textContent = String(asistentes);
+    };
+
+    const refrescarLista = async () => {
+      try {
+        const response = await fetch("/logistica/lista", {
+          headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+        });
+        if (response.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.ok) return;
+
+        const prevAsistencia = asistenciaHabilitada;
+        asistenciaHabilitada = Boolean(data.asistencia_habilitada);
+        if (prevAsistencia !== asistenciaHabilitada) {
+          window.location.reload();
+          return;
+        }
+
+        // Conservar valores de selects en edición local no es crítico; re-render limpio
+        const focused = document.activeElement;
+        const editingSelect =
+          focused instanceof HTMLSelectElement && focused.classList.contains("select-asistencia");
+        if (editingSelect) return;
+
+        renderFilas(data.estudiantes || []);
+        actualizarStats(data.total ?? 0, data.asistentes ?? 0);
+      } catch (err) {
+        /* silencio: el panel sigue usable offline temporalmente */
+      }
+    };
+
+    if (buscador) {
+      buscador.addEventListener("input", aplicarFiltro);
+    }
+
+    document.querySelectorAll(".filtro-tipo").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        filtroTipo = btn.dataset.tipo || "todos";
+        document.querySelectorAll(".filtro-tipo").forEach((b) => {
+          const active = b === btn;
+          b.classList.toggle("is-active", active);
+          b.classList.toggle("btn-primary", active);
+          b.classList.toggle("btn-outline-primary", !active);
+        });
+        aplicarFiltro();
+      });
+    });
+
+    const modalEliminar = document.getElementById("modal-eliminar");
+    const textoEliminar = document.getElementById("modal-eliminar-texto");
+    const btnConfirmarEliminar = document.getElementById("btn-confirmar-eliminar");
+
+    const openDeleteModal = (id, nombre) => {
+      pendingDeleteId = id;
+      if (textoEliminar) {
+        textoEliminar.textContent = `¿Seguro que desea eliminar a ${nombre}? Esta acción no se puede deshacer.`;
+      }
+      if (modalEliminar) {
+        modalEliminar.hidden = false;
+        modalEliminar.classList.add("is-open");
+      }
+    };
+
+    const closeDeleteModal = () => {
+      pendingDeleteId = null;
+      if (modalEliminar) {
+        modalEliminar.classList.remove("is-open");
+        modalEliminar.hidden = true;
+      }
+    };
+
+    tbody.addEventListener("click", (event) => {
+      const btn = event.target instanceof Element ? event.target.closest(".btn-eliminar") : null;
+      if (!btn) return;
+      openDeleteModal(btn.dataset.id, btn.dataset.nombre || "este asistente");
+    });
+
+    document.querySelectorAll("[data-close-confirm]").forEach((el) => {
+      el.addEventListener("click", closeDeleteModal);
+    });
+
+    if (btnConfirmarEliminar) {
+      btnConfirmarEliminar.addEventListener("click", async () => {
+        const id = pendingDeleteId;
+        if (!id) return;
+        btnConfirmarEliminar.disabled = true;
+        try {
+          const response = await fetch("/logistica/eliminar", {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({ id: Number(id), _csrf: csrf.value }),
+          });
+          const data = await response.json().catch(() => null);
+          if (!response.ok || !data?.ok) {
+            mostrarToast(data?.mensaje || "No se pudo eliminar el registro.", true);
+            if (response.status === 401) window.location.href = "/login";
+            return;
+          }
+          closeDeleteModal();
+          mostrarToast(data.mensaje || "Registro eliminado.");
+          const row = tbody.querySelector(`tr[data-id="${id}"]`);
+          if (row) row.remove();
+          const totalEl = document.getElementById("stat-total");
+          if (totalEl) {
+            const n = tbody.querySelectorAll("tr:not(.empty-row)").length;
+            totalEl.textContent = String(n);
+          }
+        } catch (err) {
+          mostrarToast("Error de red al eliminar.", true);
+        } finally {
+          btnConfirmarEliminar.disabled = false;
+        }
+      });
+    }
+
+    tabla.addEventListener("change", async (event) => {
+      const select = event.target;
+      if (!(select instanceof HTMLSelectElement) || !select.classList.contains("select-asistencia")) {
+        return;
+      }
+
+      if (select.disabled) return;
+
+      const id = select.dataset.id;
+      const asistio = select.value === "1";
+      const prev = "0";
+
+      // Solo se permite confirmar (Sí). Si vuelve a No, revertir.
+      if (!asistio) {
+        select.value = prev;
+        return;
+      }
+
+      select.disabled = true;
+
+      try {
+        const response = await fetch("/logistica/asistencia", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: JSON.stringify({
+            id: Number(id),
+            asistio: true,
+            _csrf: csrf.value,
+          }),
+        });
+
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.ok) {
+          select.value = prev;
+          select.disabled = false;
+          mostrarToast(data?.mensaje || "No se pudo actualizar.", true);
+          if (response.status === 401) window.location.href = "/login";
+          return;
+        }
+
+        // Bloquear definitivamente el select
+        select.innerHTML = '<option value="1" selected>Sí</option>';
+        select.disabled = true;
+        select.title = "Asistencia confirmada: no se puede modificar";
+
+        const cell = select.closest("tr")?.querySelector(".cell-cert");
+        if (cell) {
+          cell.innerHTML = `<a class="btn btn-sm btn-outline-primary" href="/certificados/${id}" target="_blank" rel="noopener">Ver</a>`;
+        }
+
+        const asisEl = document.getElementById("stat-asistentes");
+        if (asisEl) {
+          const count = [...tbody.querySelectorAll(".select-asistencia")].filter((s) => s.value === "1").length;
+          asisEl.textContent = String(count);
+        }
+
+        mostrarToast(data.mensaje);
+      } catch (err) {
+        select.value = prev;
+        select.disabled = false;
+        mostrarToast("Error de red al actualizar.", true);
+      }
+    });
+
+    setInterval(refrescarLista, 15000);
+  }
+})();
+
+
+
+================================================
+FILE: public/js/certificado.js
+================================================
+(() => {
+  "use strict";
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const certificado = document.getElementById("certificado");
+    const btnPdf = document.getElementById("btn-descargar-pdf");
+    const btnPrint = document.getElementById("btn-imprimir");
+
+    if (btnPrint) {
+      btnPrint.addEventListener("click", () => window.print());
+    }
+
+    if (!btnPdf || !certificado) return;
+
+    btnPdf.addEventListener("click", async () => {
+      if (typeof PDFLib === "undefined") {
+        alert("No se pudo cargar el generador de PDF. Recargue la página.");
+        return;
+      }
+
+      const filename = certificado.dataset.filename || "Certificado_Asistencia.pdf";
+      const nombre = certificado.dataset.nombre || "";
+      const cedula = certificado.dataset.cedula || "";
+      const templateUrl = certificado.dataset.template || "/img/plantilla-certificado.pdf";
+      const original = btnPdf.textContent;
+      btnPdf.disabled = true;
+      btnPdf.textContent = "Generando PDF…";
+
+      try {
+        const res = await fetch(templateUrl);
+        if (!res.ok) {
+          throw new Error("No se pudo leer la plantilla PDF");
+        }
+
+        const bytes = await res.arrayBuffer();
+        const pdf = await PDFLib.PDFDocument.load(bytes);
+        const page = pdf.getPages()[0];
+        const { width, height } = page.getSize();
+        const fontBold = await pdf.embedFont(PDFLib.StandardFonts.TimesBold);
+        const fontReg = await pdf.embedFont(PDFLib.StandardFonts.TimesRoman);
+        const color = PDFLib.rgb(10 / 255, 33 / 255, 77 / 255);
+
+        const fitSize = (text, font, maxSize, maxWidth) => {
+          let size = maxSize;
+          while (size > 10 && font.widthOfTextAtSize(text, size) > maxWidth) {
+            size -= 0.5;
+          }
+          return size;
+        };
+
+        const maxWidth = width * 0.74;
+        const nameSize = fitSize(nombre, fontBold, 22, maxWidth);
+        const nameWidth = fontBold.widthOfTextAtSize(nombre, nameSize);
+        page.drawText(nombre, {
+          x: (width - nameWidth) / 2,
+          y: height * 0.672,
+          size: nameSize,
+          font: fontBold,
+          color,
+        });
+
+        if (cedula) {
+          const cedSize = 12;
+          const cedWidth = fontReg.widthOfTextAtSize(cedula, cedSize);
+          page.drawText(cedula, {
+            x: (width - cedWidth) / 2,
+            y: height * 0.635,
+            size: cedSize,
+            font: fontReg,
+            color,
+          });
+        }
+
+        const out = await pdf.save();
+        const blob = new Blob([out], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      } catch (err) {
+        console.error(err);
+        alert("Ocurrió un error al generar el PDF. Intente nuevamente.");
+      } finally {
+        btnPdf.disabled = false;
+        btnPdf.textContent = original;
+      }
+    });
+  });
+})();
+
+
+
+================================================
+FILE: scripts/run_migrate_institucion.php
+================================================
+<?php
+$cfg = require dirname(__DIR__) . '/config/database.php';
+$dsn = sprintf('%s:host=%s;port=%s;dbname=%s', $cfg['driver'], $cfg['host'], $cfg['port'], $cfg['dbname']);
+$pdo = new PDO($dsn, $cfg['user'], $cfg['password'], $cfg['options']);
+$sql = file_get_contents(dirname(__DIR__) . '/database/migrate_institucion.sql');
+if ($sql === false) {
+    fwrite(STDERR, "No se pudo leer migrate_institucion.sql\n");
+    exit(1);
+}
+try {
+    $pdo->exec($sql);
+    echo "MIGRATE_OK\n";
+} catch (Throwable $e) {
+    fwrite(STDERR, 'MIGRATE_FAIL: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}
+$cols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name='estudiantes' ORDER BY ordinal_position")->fetchAll(PDO::FETCH_COLUMN);
+echo 'COLUMNS: ' . implode(', ', $cols) . PHP_EOL;
+
+
+
+================================================
+FILE: scripts/test_db.php
+================================================
+<?php
+$cfg = require dirname(__DIR__) . '/config/database.php';
+$dsn = sprintf('%s:host=%s;port=%s;dbname=%s', $cfg['driver'], $cfg['host'], $cfg['port'], $cfg['dbname']);
+try {
+    $pdo = new PDO($dsn, $cfg['user'], $cfg['password'], $cfg['options']);
+    $n = $pdo->query('SELECT COUNT(*) FROM estudiantes')->fetchColumn();
+    echo "PDO_OK count={$n}\n";
+} catch (Throwable $e) {
+    echo 'PDO_FAIL: ' . $e->getMessage() . PHP_EOL;
+    exit(1);
+}
+
+
