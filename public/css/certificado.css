@@ -129,10 +129,12 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-evenly;\r\n    padding: 19% 10% 7%;
+    justify-content: space-evenly;
+    padding: 18% 10% 6%;
     text-align: center;
 }
 
+/* ============================================================ */
 .cert-divider {
     display: flex;
     align-items: center;
@@ -142,6 +144,7 @@ body {
     margin: 0.28rem 0 0.48rem;
 }
 
+/* ============================================================ */
 .cert-divider::before,
 .cert-divider::after {
     content: "";
@@ -150,6 +153,7 @@ body {
     background: var(--navy);
 }
 
+/* ============================================================ */
 .cert-divider span {
     width: 5px;
     height: 5px;
@@ -159,20 +163,25 @@ body {
     flex-shrink: 0;
 }
 
+/* ============================================================ */
 .cert-divider-name {
     margin-top: 0.08rem;
     margin-bottom: 0.22rem;
 }
 
+/* ============================================================ */
 .cert-title {
-    margin: 0.02rem 0;\r\n    font-family: var(--serif);\r\n    font-size: clamp(1.1rem, 2.8vw, 1.95rem);
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(1rem, 2.5vw, 1.8rem);
     font-weight: 700;
     letter-spacing: 0.03em;
     color: var(--navy);
     text-transform: uppercase;
-    line-height: 1.15;
+    line-height: 1.2;
 }
 
+/* ============================================================ */
 .cert-otorgado {
     margin: 0.45rem 0 0.28rem;
     font-size: clamp(0.92rem, 1.5vw, 1.18rem);
@@ -180,16 +189,20 @@ body {
     color: var(--navy);
 }
 
+/* ============================================================ */
 .cert-name {
-    margin: 0.02rem 0;\r\n    font-family: var(--serif);\r\n    font-size: clamp(1.25rem, 3.4vw, 2.3rem);
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(1.2rem, 3.2vw, 2.2rem);
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--navy);
     text-transform: uppercase;
-    line-height: 1.12;
+    line-height: 1.2;
     max-width: 92%;
 }
 
+/* ============================================================ */
 .cert-cedula {
     margin: 0.08rem 0 0.5rem;
     font-size: clamp(0.72rem, 1.1vw, 0.9rem);
@@ -197,18 +210,37 @@ body {
     color: var(--blue);
 }
 
+/* ============================================================ */
 .cert-motivo {
-    margin: 0.15rem 0 0.25rem;\r\n    max-width: 34rem;\r\n    font-size: clamp(0.82rem, 1.25vw, 1.02rem);\r\n    font-weight: 500;\r\n    line-height: 1.35;
+    margin: 0.1rem 0;
+    max-width: 40rem;
+    font-size: clamp(0.78rem, 1.15vw, 0.98rem);
+    font-weight: 500;
+    line-height: 1.3;
     color: var(--navy);
 }
 
+/* ============================================================ */
 .cert-motivo strong {
     font-weight: 700;
 }
 
+/* ============================================================ */
 .cert-colaboracion {
-    margin: 0 0 0.35rem;\r\n    max-width: 38rem;\r\n    font-size: clamp(0.65rem, 0.95vw, 0.78rem);\r\n    font-weight: 400;\r\n    line-height: 1.35;
+    margin: 0.1rem 0;
+    max-width: 40rem;
+    font-size: clamp(0.62rem, 0.9vw, 0.75rem);
+    font-weight: 400;
+    line-height: 1.3;
     color: var(--navy);
+}
+
+/* ============================================================ */
+.cert-signatures {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-top: 0.5rem;
 }
 
 .cert-fecha {
