@@ -6889,6 +6889,8 @@
       apellido: String(row.apellido),
       correo: String(row.correo),
       telefono: String(row.telefono),
+      institution_name: String(row.institution_name ?? "No indic\xF3 instituci\xF3n"),
+      institution_type: String(row.institution_type ?? "no_indico"),
       asistio: Boolean(row.asistio),
       fecha_registro: row.fecha_registro
     };

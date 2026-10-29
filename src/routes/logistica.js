@@ -51,6 +51,8 @@ logisticaRouter.get("/logistica/lista", requireStaff, async (_req, res) => {
       apellido: String(e.apellido),
       correo: String(e.correo),
       telefono: String(e.telefono),
+      institution_name: String(e.institution_name ?? "No indicó institución"),
+      institution_type: String(e.institution_type ?? "no_indico"),
       asistio: Boolean(e.asistio),
       fecha_registro: e.fecha_registro ?? "",
     }));
@@ -159,6 +161,47 @@ logisticaRouter.post("/logistica/asistencia", requireStaff, async (req, res) => 
   } catch (err) {
     console.error("[asistencia]", err.message);
     return res.status(500).json({ ok: false, mensaje: "Error al actualizar la asistencia." });
+  }
+});
+
+logisticaRouter.post("/logistica/eliminar", requireStaff, async (req, res) => {
+  if (!verifyCsrf(req)) {
+    return res.status(403).json({ ok: false, mensaje: "Token de seguridad inválido." });
+  }
+
+  const id = Number.parseInt(req.body?.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(422).json({ ok: false, mensaje: "Identificador de estudiante inválido." });
+  }
+
+  try {
+    const actual = await Estudiantes.buscarPorId(id);
+    if (!actual) {
+      return res.status(404).json({ ok: false, mensaje: "Estudiante no encontrado." });
+    }
+
+    if (actual.asistio) {
+      return res.status(409).json({
+        ok: false,
+        mensaje:
+          "No se puede eliminar: la asistencia ya fue confirmada y el certificado está en proceso.",
+        data: { id, asistio: true, bloqueado: true },
+      });
+    }
+
+    const borrado = await Estudiantes.eliminar(id);
+    if (!borrado) {
+      return res.status(404).json({ ok: false, mensaje: "Estudiante no encontrado." });
+    }
+
+    return res.json({
+      ok: true,
+      mensaje: `Registro de ${borrado.nombre} ${borrado.apellido} eliminado.`,
+      data: { id: Number(borrado.id) },
+    });
+  } catch (err) {
+    console.error("[eliminar]", err.message);
+    return res.status(500).json({ ok: false, mensaje: "Error al eliminar el registro." });
   }
 });
 

@@ -82,6 +82,9 @@ async function main() {
   form.set("fecha_nacimiento", "2000-05-10");
   form.set("correo", correo);
   form.set("telefono", "04141234567");
+  form.set("viene_institucion", "si");
+  form.set("institution_type", "universidad");
+  form.set("institution_name", "Universidad E2E");
 
   const created = await req(jar, "/registro", {
     method: "POST",
@@ -140,7 +143,105 @@ async function main() {
     headers: { accept: "application/json", "x-requested-with": "XMLHttpRequest" },
   });
   const listaData = await lista.json();
-  assert("GET /logistica/lista → JSON desde Postgres", lista.ok && listaData.ok && listaData.total >= 3, `total=${listaData.total}`);
+  assert("GET /logistica/lista → JSON desde Postgres", lista.ok && listaData.ok && listaData.total >= 1, `total=${listaData.total}`);
+
+  const creadoLista = (listaData.estudiantes ?? []).find((e) => Number(e.id) === Number(estudianteId));
+  assert(
+    "GET /logistica/lista expone la institución",
+    creadoLista?.institution_type === "universidad" &&
+      creadoLista?.institution_name === "Universidad E2E",
+    `tipo=${creadoLista?.institution_type} nombre=${creadoLista?.institution_name}`,
+  );
+
+  // ── Eliminar: sesión, CSRF, 404, borrado y cascada ──────────
+  const deleteHeaders = {
+    accept: "application/json",
+    "content-type": "application/json",
+    "x-requested-with": "XMLHttpRequest",
+  };
+
+  const sinSesion = new Jar();
+  const deleteSinSesion = await req(sinSesion, "/logistica/eliminar", {
+    method: "POST",
+    headers: deleteHeaders,
+    body: JSON.stringify({ id: estudianteId, _csrf: "x" }),
+  });
+  assert("POST /logistica/eliminar sin sesión → 401", deleteSinSesion.status === 401, `status=${deleteSinSesion.status}`);
+
+  const deleteSinCsrf = await req(jar, "/logistica/eliminar", {
+    method: "POST",
+    headers: deleteHeaders,
+    body: JSON.stringify({ id: estudianteId, _csrf: "invalido" }),
+  });
+  assert("POST /logistica/eliminar con CSRF inválido → 403", deleteSinCsrf.status === 403, `status=${deleteSinCsrf.status}`);
+
+  const deleteInexistente = await req(jar, "/logistica/eliminar", {
+    method: "POST",
+    headers: deleteHeaders,
+    body: JSON.stringify({ id: 99_999_999, _csrf: csrfStaff }),
+  });
+  assert("POST /logistica/eliminar id inexistente → 404", deleteInexistente.status === 404, `status=${deleteInexistente.status}`);
+
+  const cedulaBorrar = `8${stamp}`;
+  const formBorrar = new FormData();
+  formBorrar.set("_csrf", csrfRegistro);
+  formBorrar.set("cedula", cedulaBorrar);
+  formBorrar.set("nombre", "Borrar");
+  formBorrar.set("apellido", "Prueba");
+  formBorrar.set("fecha_nacimiento", "1999-01-15");
+  formBorrar.set("correo", `borrar-${stamp}@foro.test`);
+  formBorrar.set("telefono", "04140001122");
+  formBorrar.set("viene_institucion", "no");
+
+  const createdBorrar = await req(jar, "/registro", {
+    method: "POST",
+    headers: { accept: "application/json", "x-requested-with": "XMLHttpRequest" },
+    body: formBorrar,
+  });
+  const createdBorrarData = await createdBorrar.json().catch(() => ({}));
+  assert("Registro sin institución usa no_indico", createdBorrar.status === 201 && createdBorrarData.ok, `id=${createdBorrarData.id}`);
+
+  const listaBorrar = await req(jar, "/logistica/lista", {
+    headers: { accept: "application/json", "x-requested-with": "XMLHttpRequest" },
+  });
+  const listaBorrarData = await listaBorrar.json();
+  const borrarLista = (listaBorrarData.estudiantes ?? []).find(
+    (e) => Number(e.id) === Number(createdBorrarData.id),
+  );
+  assert(
+    "Participante sin institución queda como no_indico",
+    borrarLista?.institution_type === "no_indico" && borrarLista?.institution_name === "No indicó institución",
+    `tipo=${borrarLista?.institution_type}`,
+  );
+
+  const dbBorrado = new Client({ connectionString: process.env.DATABASE_URL_UNPOOLED });
+  await dbBorrado.connect();
+  await dbBorrado.query(
+    `INSERT INTO certificado_envios (estudiante_id, estado)
+     VALUES ($1, 'pendiente') ON CONFLICT (estudiante_id) DO NOTHING`,
+    [createdBorrarData.id],
+  );
+
+  const deleteOk = await req(jar, "/logistica/eliminar", {
+    method: "POST",
+    headers: deleteHeaders,
+    body: JSON.stringify({ id: createdBorrarData.id, _csrf: csrfStaff }),
+  });
+  const deleteOkData = await deleteOk.json().catch(() => ({}));
+  assert("POST /logistica/eliminar borra el registro", deleteOk.status === 200 && deleteOkData.ok, `status=${deleteOk.status}`);
+
+  const restos = await dbBorrado.query(
+    `SELECT
+       (SELECT count(*)::int FROM estudiantes WHERE id = $1) AS estudiantes,
+       (SELECT count(*)::int FROM certificado_envios WHERE estudiante_id = $1) AS envios`,
+    [createdBorrarData.id],
+  );
+  assert(
+    "Eliminar arrastra outbox (ON DELETE CASCADE)",
+    restos.rows[0].estudiantes === 0 && restos.rows[0].envios === 0,
+    `estudiantes=${restos.rows[0].estudiantes} envios=${restos.rows[0].envios}`,
+  );
+  await dbBorrado.end();
 
   // ── Neon Realtime: sealed query + suscripción viva ──────────
   const live = await req(jar, "/logistica/live", {
@@ -226,6 +327,17 @@ async function main() {
     body: JSON.stringify({ id: estudianteId, asistio: true, _csrf: csrfStaff }),
   });
   assert("Segunda confirmación se bloquea (409)", repetida.status === 409, `status=${repetida.status}`);
+
+  const deleteAsistio = await req(jar, "/logistica/eliminar", {
+    method: "POST",
+    headers: deleteHeaders,
+    body: JSON.stringify({ id: estudianteId, _csrf: csrfStaff }),
+  });
+  assert(
+    "Eliminar se bloquea si la asistencia ya fue confirmada (409)",
+    deleteAsistio.status === 409,
+    `status=${deleteAsistio.status}`,
+  );
 
   // Verificación directa en Postgres del trabajo en background
   const db = new Client({ connectionString: process.env.DATABASE_URL_UNPOOLED });

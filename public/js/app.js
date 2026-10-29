@@ -104,7 +104,41 @@
       ok = false;
     }
 
+    const vieneRadio = form.querySelector('input[name="viene_institucion"]:checked');
+    if (vieneRadio && vieneRadio.value === "si") {
+      const tipo = form.institution_type.value;
+      if (!["universidad", "empresa", "otra"].includes(tipo)) {
+        setError(form.institution_type, "Seleccione el tipo de institución.");
+        ok = false;
+      }
+
+      const institucion = form.institution_name.value.trim().replace(/\s+/g, " ");
+      form.institution_name.value = institucion;
+      if (institucion.length < 2 || institucion.length > 150) {
+        setError(form.institution_name, "El nombre de la institución debe tener entre 2 y 150 caracteres.");
+        ok = false;
+      }
+    }
+
     return ok;
+  }
+
+  function abrirModal(modal) {
+    if (!modal) return;
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+    const focusable = modal.querySelector("button, [href], input, select, textarea");
+    if (focusable) focusable.focus();
+  }
+
+  function cerrarModal(modal) {
+    if (!modal) return;
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    if (!document.querySelector(".success-modal:not([hidden]), .confirm-modal:not([hidden])")) {
+      document.body.classList.remove("modal-open");
+    }
   }
 
   function initRegistro() {
@@ -115,6 +149,35 @@
     const edadInput = form.edad;
     const alerta = document.getElementById("alerta");
     const btn = document.getElementById("btn-registrar");
+    const instExtra = document.getElementById("inst-extra");
+    const successModal = document.getElementById("success-modal");
+    const successMessage = document.getElementById("success-message");
+    const successClose = document.getElementById("success-close");
+
+    const syncInstitucion = () => {
+      const checked = form.querySelector('input[name="viene_institucion"]:checked');
+      const si = checked?.value === "si";
+      if (instExtra) instExtra.classList.toggle("d-none", !si);
+      form.institution_type.required = si;
+      form.institution_name.required = si;
+    };
+
+    form.querySelectorAll('input[name="viene_institucion"]').forEach((radio) => {
+      radio.addEventListener("change", syncInstitucion);
+    });
+    syncInstitucion();
+
+    if (successClose) {
+      successClose.addEventListener("click", () => cerrarModal(successModal));
+    }
+    if (successModal) {
+      successModal.addEventListener("click", (event) => {
+        if (event.target === successModal) cerrarModal(successModal);
+      });
+    }
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") cerrarModal(successModal);
+    });
 
     form.cedula.addEventListener("input", () => {
       form.cedula.value = soloDigitos(form.cedula.value, 10);
@@ -177,6 +240,12 @@
         form.reset();
         edadInput.value = "";
         clearErrors(form);
+        syncInstitucion();
+
+        if (successModal && successMessage) {
+          successMessage.textContent = data.mensaje;
+          abrirModal(successModal);
+        }
       } catch (err) {
         showAlert(alerta, "Error de red. Intente nuevamente.", "error");
       } finally {
@@ -200,9 +269,16 @@
     const buscador = document.getElementById("buscador");
     const csrf = document.getElementById("csrf-logistica");
     const toast = document.getElementById("toast-logistica");
+    const confirmModal = document.getElementById("confirm-modal");
+    const confirmText = document.getElementById("confirm-text");
+    const confirmCancel = document.getElementById("confirm-cancel");
+    const confirmDelete = document.getElementById("confirm-delete");
     if (!tabla || !tbody || !csrf) return;
 
+    let pendienteEliminar = null;
+
     let asistenciaHabilitada = tabla.dataset.asistencia === "1";
+    let filtroTipo = "todos";
 
     const mostrarToast = (msg, isError = false) => {
       if (!toast) return;
@@ -214,14 +290,14 @@
     };
 
     const aplicarFiltro = () => {
-      if (!buscador) return;
-      const q = buscador.value.trim().toLowerCase();
+      const q = buscador ? buscador.value.trim().toLowerCase() : "";
       tbody.querySelectorAll("tr").forEach((row) => {
         if (row.classList.contains("empty-row")) return;
-        const cedula = row.dataset.cedula || "";
-        const apellido = row.dataset.apellido || "";
-        const match = !q || cedula.includes(q) || apellido.includes(q);
-        row.classList.toggle("is-hidden", !match);
+        const tipo = row.dataset.tipo || "no_indico";
+        const coincideTipo = filtroTipo === "todos" || tipo === filtroTipo;
+        const texto = (row.textContent || "").toLowerCase();
+        const coincideTexto = !q || texto.includes(q);
+        row.classList.toggle("is-hidden", !(coincideTipo && coincideTexto));
       });
     };
 
@@ -234,7 +310,7 @@
     };
 
     const renderFilas = (estudiantes) => {
-      const cols = asistenciaHabilitada ? 7 : 6;
+      const cols = asistenciaHabilitada ? 9 : 8;
       if (!estudiantes.length) {
         tbody.innerHTML = `<tr class="empty-row"><td colspan="${cols}">No hay participantes registrados aún.</td></tr>`;
         return;
@@ -249,6 +325,16 @@
           const telefono = escapeHtml(e.telefono);
           const cedulaKey = String(e.cedula).toLowerCase();
           const apellidoKey = String(e.apellido).toLowerCase();
+          const tipo = e.institution_type || "no_indico";
+          const institucion =
+            tipo === "no_indico"
+              ? `<span class="text-muted">—</span>`
+              : `<span class="inst-nombre">${escapeHtml(e.institution_name || "")}</span><span class="inst-tipo">${escapeHtml(tipo)}</span>`;
+          const acciones = `<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar"
+              data-id="${e.id}" data-nombre="${nombre} ${apellido}" data-eliminar="${e.asistio ? "1" : "0"}"
+              ${e.asistio ? "disabled" : ""}
+              title="${e.asistio ? "No se puede eliminar: asistencia confirmada" : "Eliminar registro"}">Eliminar</button>`;
+          const attrs = `data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}" data-tipo="${escapeHtml(tipo)}"`;
 
           if (asistenciaHabilitada) {
             const cert = e.asistio
@@ -262,16 +348,20 @@
                   <option value="0" selected>No</option>
                   <option value="1">Sí</option>
                 </select>`;
-            return `<tr data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}">
+            return `<tr ${attrs}>
               <td>${cedula}</td><td>${apellido}</td><td>${nombre}</td><td>${correo}</td><td>${telefono}</td>
+              <td class="cell-inst">${institucion}</td>
               <td>${selectHtml}</td>
               <td class="cell-cert">${cert}</td>
+              <td class="cell-acciones">${acciones}</td>
             </tr>`;
           }
 
-          return `<tr data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}">
+          return `<tr ${attrs}>
             <td>${cedula}</td><td>${apellido}</td><td>${nombre}</td><td>${correo}</td><td>${telefono}</td>
+            <td class="cell-inst">${institucion}</td>
             <td>${escapeHtml(formatFecha(e.fecha_registro))}</td>
+            <td class="cell-acciones">${acciones}</td>
           </tr>`;
         })
         .join("");
@@ -349,6 +439,90 @@
 
     if (buscador) {
       buscador.addEventListener("input", aplicarFiltro);
+    }
+
+    document.querySelectorAll(".filtro-btn").forEach((boton) => {
+      boton.addEventListener("click", () => {
+        filtroTipo = boton.dataset.tipo || "todos";
+        document.querySelectorAll(".filtro-btn").forEach((b) => {
+          b.classList.toggle("is-active", b === boton);
+        });
+        aplicarFiltro();
+      });
+    });
+
+    tbody.addEventListener("click", (event) => {
+      const btn = event.target.closest(".btn-eliminar");
+      if (!btn) return;
+
+      if (btn.dataset.eliminar === "1") {
+        mostrarToast("No se puede eliminar: la asistencia ya fue confirmada.", true);
+        return;
+      }
+
+      pendienteEliminar = btn;
+      if (confirmText) {
+        confirmText.textContent = `¿Seguro que desea eliminar a ${btn.dataset.nombre}? La acción no se puede deshacer.`;
+      }
+      abrirModal(confirmModal);
+    });
+
+    if (confirmCancel) {
+      confirmCancel.addEventListener("click", () => cerrarModal(confirmModal));
+    }
+    if (confirmModal) {
+      confirmModal.addEventListener("click", (event) => {
+        if (event.target === confirmModal) cerrarModal(confirmModal);
+      });
+    }
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") cerrarModal(confirmModal);
+    });
+
+    if (confirmDelete) {
+      confirmDelete.addEventListener("click", async () => {
+        if (!pendienteEliminar) return;
+
+        const btn = pendienteEliminar;
+        const id = Number(btn.dataset.id);
+        confirmDelete.disabled = true;
+
+        try {
+          const response = await fetch("/logistica/eliminar", {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({ id, _csrf: csrf.value }),
+          });
+
+          const data = await response.json().catch(() => null);
+          if (!response.ok || !data?.ok) {
+            mostrarToast(data?.mensaje || "No se pudo eliminar el registro.", true);
+            if (response.status === 401) window.location.href = "/login";
+            return;
+          }
+
+          const row = btn.closest("tr");
+          if (row) row.remove();
+          pendienteEliminar = null;
+          cerrarModal(confirmModal);
+
+          const restantes = tbody.querySelectorAll("tr:not(.empty-row)").length;
+          const asistentes = [...tbody.querySelectorAll(".select-asistencia")].filter(
+            (s) => s.value === "1",
+          ).length;
+          actualizarStats(restantes, asistentes);
+
+          mostrarToast(data.mensaje);
+        } catch (err) {
+          mostrarToast("Error de red al eliminar.", true);
+        } finally {
+          confirmDelete.disabled = false;
+        }
+      });
     }
 
     tabla.addEventListener("change", async (event) => {

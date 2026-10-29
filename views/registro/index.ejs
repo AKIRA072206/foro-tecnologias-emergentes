@@ -6,6 +6,7 @@
   const alerta = mensaje ? `alert alert-${tipo === "error" ? "danger" : tipo} show` : "alert d-none";
   const errClass = (key) => (errores[key] ? " is-invalid" : "");
   const val = (key) => old[key] ?? "";
+  const vieneInstitucion = val("viene_institucion") === "si";
 %>
 <%- include("../layouts/header") %>
 <section class="section section-registro py-4 py-md-5">
@@ -80,6 +81,45 @@
                            value="<%= val("telefono") %>" autocomplete="tel" required>
                     <div class="invalid-feedback d-block field-error" data-error-for="telefono"><%= errores.telefono ?? "" %></div>
                 </div>
+
+                <div class="col-12">
+                    <fieldset class="procedencia-fieldset">
+                        <legend class="form-label mb-2">¿Vienes de alguna institución?</legend>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="viene_institucion"
+                                       id="viene-si" value="si"<%= vieneInstitucion ? " checked" : "" %>>
+                                <label class="form-check-label" for="viene-si">Sí, vengo de una institución</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="viene_institucion"
+                                       id="viene-no" value="no"<%= !vieneInstitucion ? " checked" : "" %>>
+                                <label class="form-check-label" for="viene-no">No, participo de forma independiente</label>
+                            </div>
+                        </div>
+
+                        <div id="inst-extra" class="row g-3 mt-1<%= vieneInstitucion ? "" : " d-none" %>">
+                            <div class="col-md-5">
+                                <label class="form-label" for="institution_type">Tipo de institución <span class="text-danger">*</span></label>
+                                <select class="form-select<%= errClass("institution_type") %>" id="institution_type"
+                                        name="institution_type">
+                                    <option value="">Seleccione…</option>
+                                    <option value="universidad"<%= val("institution_type") === "universidad" ? " selected" : "" %>>Universidad</option>
+                                    <option value="empresa"<%= val("institution_type") === "empresa" ? " selected" : "" %>>Empresa</option>
+                                    <option value="otra"<%= val("institution_type") === "otra" ? " selected" : "" %>>Otra</option>
+                                </select>
+                                <div class="invalid-feedback d-block field-error" data-error-for="institution_type"><%= errores.institution_type ?? "" %></div>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label" for="institution_name">Nombre de la institución <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control<%= errClass("institution_name") %>" id="institution_name"
+                                       name="institution_name" maxlength="150" placeholder="Ej: Universidad Politécnica Territorial"
+                                       value="<%= val("institution_name") %>" autocomplete="organization">
+                                <div class="invalid-feedback d-block field-error" data-error-for="institution_name"><%= errores.institution_name ?? "" %></div>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
             </div>
 
             <div class="d-flex justify-content-end mt-4">
@@ -88,4 +128,14 @@
         </form>
     </div>
 </section>
+
+<div class="success-modal" id="success-modal" hidden aria-hidden="true">
+    <div class="success-modal-card" role="dialog" aria-modal="true" aria-labelledby="success-title">
+        <div class="success-modal-icon" aria-hidden="true">✓</div>
+        <h2 class="h4 mb-2" id="success-title">Registro exitoso</h2>
+        <p class="text-muted mb-4" id="success-message"></p>
+        <button type="button" class="btn btn-primary px-4" id="success-close">Entendido</button>
+    </div>
+</div>
+
 <%- include("../layouts/footer") %>

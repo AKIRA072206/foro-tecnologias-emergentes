@@ -635,6 +635,153 @@ a {
     background: var(--danger);
 }
 
+/* Procedencia (registro) */
+.procedencia-fieldset {
+    margin: 0;
+    padding: 0.9rem 1rem 1rem;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    background: #f7fafd;
+}
+
+.procedencia-fieldset legend {
+    float: none;
+    width: auto;
+    padding: 0 0.35rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* Logística: filtros de procedencia */
+.filtro-procedencia {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.filtro-btn {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-soft);
+    border-radius: 999px;
+    padding: 0.4rem 0.95rem;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.filtro-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.filtro-btn.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.cell-inst {
+    white-space: normal;
+    min-width: 170px;
+}
+
+.inst-nombre {
+    display: block;
+    font-weight: 600;
+}
+
+.inst-tipo {
+    display: inline-block;
+    margin-top: 0.15rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+}
+
+.cell-acciones {
+    white-space: nowrap;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Modales (éxito y confirmación) */
+.success-modal,
+.confirm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(0, 27, 72, 0.55);
+    backdrop-filter: blur(2px);
+}
+
+.success-modal[hidden],
+.confirm-modal[hidden] {
+    display: none;
+}
+
+.success-modal-card,
+.confirm-modal-card {
+    width: min(100%, 440px);
+    padding: 2rem 1.5rem;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    text-align: center;
+    animation: modal-pop 0.2s ease-out;
+}
+
+.confirm-modal-card {
+    text-align: left;
+}
+
+.success-modal-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    background: var(--success-soft);
+    color: var(--success);
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+
+@keyframes modal-pop {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .success-modal-card,
+    .confirm-modal-card {
+        animation: none;
+    }
+}
+
 /* Footer */
 .site-footer {
     margin-top: auto;

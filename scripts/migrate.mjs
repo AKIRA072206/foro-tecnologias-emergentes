@@ -52,6 +52,15 @@ try {
   await client.query(sql);
   console.log("[migrate] esquema aplicado:", path.relative(process.cwd(), schemaPath));
 
+  // Migraciones incrementales e idempotentes sobre bases ya existentes.
+  const migraciones = ["migrate_institucion.sql"];
+  for (const archivo of migraciones) {
+    const ruta = path.join(process.cwd(), "database", archivo);
+    if (!fs.existsSync(ruta)) continue;
+    await client.query(fs.readFileSync(ruta, "utf8"));
+    console.log("[migrate] migración aplicada:", archivo);
+  }
+
   if (process.argv.includes("--seed")) {
     for (const row of seed) {
       await client.query(

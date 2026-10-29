@@ -4,7 +4,7 @@
   const habilitada = Boolean(locals.asistenciaHabilitada);
   const total = estudiantes.length;
   const asistentes = estudiantes.filter((e) => Boolean(e.asistio)).length;
-  const colspan = habilitada ? 7 : 6;
+  const colspan = habilitada ? 9 : 8;
   const fmt = (value) => {
     if (!value) return "—";
     const d = new Date(value);
@@ -51,11 +51,19 @@
             <div class="flex-grow-1" style="max-width: 360px;">
                 <label class="visually-hidden" for="buscador">Buscar</label>
                 <input type="search" class="form-control" id="buscador"
-                       placeholder="Buscar por cédula o apellido…" autocomplete="off">
+                       placeholder="Buscar por cédula, nombre o institución…" autocomplete="off">
             </div>
             <p class="text-muted small mb-0" id="refresh-note">
                 <%= locals.realtime ? "Actualización en vivo (Neon Realtime)" : "Actualización automática cada 15 s" %>
             </p>
+        </div>
+
+        <div class="filtro-procedencia mb-3" role="group" aria-label="Filtrar por procedencia">
+            <button type="button" class="filtro-btn is-active" data-tipo="todos">Todos</button>
+            <button type="button" class="filtro-btn" data-tipo="universidad">Universidad</button>
+            <button type="button" class="filtro-btn" data-tipo="empresa">Empresa</button>
+            <button type="button" class="filtro-btn" data-tipo="otra">Otra</button>
+            <button type="button" class="filtro-btn" data-tipo="no_indico">Sin institución</button>
         </div>
 
         <div class="table-responsive card shadow-sm border-0">
@@ -69,13 +77,16 @@
                         <th>Nombre</th>
                         <th>Correo</th>
                         <th>Teléfono</th>
+                        <th>Institución</th>
                         <% if (habilitada) { %>
                             <th>¿Vino?</th>
                             <th>Certificado</th>
                         <% } else { %>
                             <th>Registro</th>
                         <% } %>
+                        <th>Acciones</th>
                     </tr>
+
                 </thead>
                 <tbody id="tbody-estudiantes">
                 <% if (estudiantes.length === 0) { %>
@@ -86,12 +97,21 @@
                     <% estudiantes.forEach((est) => { const asistio = Boolean(est.asistio); const id = Number(est.id); %>
                         <tr data-id="<%= id %>"
                             data-cedula="<%= String(est.cedula).toLowerCase() %>"
-                            data-apellido="<%= String(est.apellido).toLocaleLowerCase("es") %>">
+                            data-apellido="<%= String(est.apellido).toLocaleLowerCase("es") %>"
+                            data-tipo="<%= est.institution_type ?? "no_indico" %>">
                             <td><%= est.cedula %></td>
                             <td><%= est.apellido %></td>
                             <td><%= est.nombre %></td>
                             <td><%= est.correo %></td>
                             <td><%= est.telefono %></td>
+                            <td class="cell-inst">
+                                <% if ((est.institution_type ?? "no_indico") === "no_indico") { %>
+                                    <span class="text-muted">—</span>
+                                <% } else { %>
+                                    <span class="inst-nombre"><%= est.institution_name %></span>
+                                    <span class="inst-tipo"><%= est.institution_type %></span>
+                                <% } %>
+                            </td>
                             <% if (habilitada) { %>
                                 <td>
                                     <% if (asistio) { %>
@@ -118,6 +138,17 @@
                             <% } else { %>
                                 <td><%= fmt(est.fecha_registro) %></td>
                             <% } %>
+                            <td class="cell-acciones">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger btn-eliminar"
+                                        data-id="<%= id %>"
+                                        data-nombre="<%= est.nombre %> <%= est.apellido %>"
+                                        data-eliminar="<%= asistio ? "1" : "0" %>"
+                                        <%= asistio ? "disabled" : "" %>
+                                        title="<%= asistio ? "No se puede eliminar: asistencia confirmada" : "Eliminar registro" %>">
+                                    Eliminar
+                                </button>
+                            </td>
                         </tr>
                     <% }); %>
                 <% } %>
@@ -129,4 +160,18 @@
         <p id="toast-logistica" class="toast" role="status" aria-live="polite"></p>
     </div>
 </section>
+
+<div class="confirm-modal" id="confirm-modal" hidden aria-hidden="true">
+    <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <h2 class="h5 mb-2" id="confirm-title">Eliminar registro</h2>
+        <p class="text-muted mb-4" id="confirm-text">
+            ¿Seguro que desea eliminar este participante? La acción no se puede deshacer.
+        </p>
+        <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-outline-secondary" id="confirm-cancel">Cancelar</button>
+            <button type="button" class="btn btn-danger" id="confirm-delete">Sí, eliminar</button>
+        </div>
+    </div>
+</div>
+
 <%- include("../layouts/footer") %>

@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS estudiantes (
     edad             INT          NOT NULL CHECK (edad >= 0 AND edad <= 120),
     correo           VARCHAR(150) NOT NULL,
     telefono         VARCHAR(15)  NOT NULL,
+    institution_name VARCHAR(150) NOT NULL DEFAULT 'No indicó institución',
+    institution_type VARCHAR(20)  NOT NULL DEFAULT 'no_indico',
     asistio          BOOLEAN      NOT NULL DEFAULT FALSE,
     fecha_registro   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -34,12 +36,17 @@ CREATE TABLE IF NOT EXISTS estudiantes (
     CONSTRAINT chk_estudiantes_apellido CHECK (
         char_length(trim(apellido)) BETWEEN 2 AND 30
         AND apellido ~ '^[[:alpha:]''\-]+$'
+    ),
+    CONSTRAINT chk_estudiantes_institution_type CHECK (
+        institution_type IN ('universidad', 'empresa', 'otra', 'no_indico')
     )
 );
 
 CREATE INDEX IF NOT EXISTS idx_estudiantes_apellido ON estudiantes (apellido);
 CREATE INDEX IF NOT EXISTS idx_estudiantes_asistio ON estudiantes (asistio);
 CREATE INDEX IF NOT EXISTS idx_estudiantes_cedula ON estudiantes (cedula);
+-- idx_estudiantes_institution_type se crea en migrate_institucion.sql
+-- para no romper bases existentes sin esa columna.
 
 COMMENT ON TABLE estudiantes IS 'Participantes registrados al II Foro de Tecnologías Emergentes';
 COMMENT ON COLUMN estudiantes.asistio IS 'TRUE cuando logística confirma asistencia el 06/11/2026';

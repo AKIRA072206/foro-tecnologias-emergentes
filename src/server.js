@@ -1,4 +1,5 @@
 import app from "./app.js";
+import { EVENTO } from "./config.js";
 
 // Solo escuchar localmente (no en serverless/Vercel)
 // En Vercel, el servidor es invocado por el handler de HTTP

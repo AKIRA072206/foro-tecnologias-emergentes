@@ -20,7 +20,8 @@ export async function sellarListado() {
   if (!realtime) throw new Error("Neon Realtime no está configurado en esta rama");
 
   const query = rawSql(
-    `SELECT id, cedula, nombre, apellido, correo, telefono, asistio, fecha_registro
+    `SELECT id, cedula, nombre, apellido, correo, telefono,
+            institution_name, institution_type, asistio, fecha_registro
        FROM estudiantes
       ORDER BY apellido ASC, nombre ASC`,
     [],

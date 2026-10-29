@@ -6,6 +6,19 @@ const clean = (value) =>
     .trim()
     .replace(/[\x00-\x1F\x7F]/gu, "");
 
+const TIPOS_INSTITUCION = new Set(["universidad", "empresa", "otra"]);
+
+/** Normaliza Sí/No sin distinguir mayúsculas ni tildes. */
+function normalizarSiNo(value) {
+  const val = clean(value)
+    .toLocaleLowerCase("es")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (["si", "s", "true", "1"].includes(val)) return "si";
+  if (["no", "n", "false", "0"].includes(val)) return "no";
+  return "";
+}
+
 const titleCase = (value) =>
   value.toLocaleLowerCase("es").replace(/(^|[\s'-])(\p{L})/gu, (_, sep, letra) => sep + letra.toUpperCase());
 
@@ -81,5 +94,41 @@ export function validateRegistro(input) {
     data.telefono = telefonoNorm;
   }
 
+  validarInstitucion(input, errores, data);
+
   return { ok: Object.keys(errores).length === 0, errores, data };
+}
+
+/**
+ * Procedencia del participante (delta 2.0).
+ * - "no" o vacío: institution_type = no_indico, name por defecto.
+ * - "si": exige tipo válido y nombre de 2 a 150 caracteres.
+ */
+export function validarInstitucion(input, errores = {}, data = {}) {
+  const viene = normalizarSiNo(input.viene_institucion);
+
+  if (viene !== "si") {
+    data.viene_institucion = "no";
+    data.institution_type = "no_indico";
+    data.institution_name = "No indicó institución";
+    return { errores, data };
+  }
+
+  data.viene_institucion = "si";
+
+  const tipo = clean(input.institution_type).toLocaleLowerCase("es");
+  if (!TIPOS_INSTITUCION.has(tipo)) {
+    errores.institution_type = "Seleccione el tipo de institución.";
+  } else {
+    data.institution_type = tipo;
+  }
+
+  const nombre = clean(input.institution_name).replace(/\s+/g, " ");
+  if (nombre.length < 2 || nombre.length > 150) {
+    errores.institution_name = "El nombre de la institución debe tener entre 2 y 150 caracteres.";
+  } else {
+    data.institution_name = nombre;
+  }
+
+  return { errores, data };
 }

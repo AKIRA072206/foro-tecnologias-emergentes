@@ -32,6 +32,9 @@ registroRouter.post("/registro", form, async (req, res) => {
     fecha_nacimiento: req.body?.fecha_nacimiento ?? "",
     correo: req.body?.correo ?? "",
     telefono: req.body?.telefono ?? "",
+    viene_institucion: req.body?.viene_institucion ?? "",
+    institution_type: req.body?.institution_type ?? "",
+    institution_name: req.body?.institution_name ?? "",
   };
 
   if (!verifyCsrf(req)) {
