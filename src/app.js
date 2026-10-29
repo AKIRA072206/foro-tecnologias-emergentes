@@ -41,8 +41,6 @@ app.use(express.static(path.join(process.cwd(), "public")));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "1mb" }));
-// Aceptar bodies crudos (PDF) para la subida de certificados a Neon Object Storage
-app.use(express.raw({ type: "application/pdf", limit: "5mb" }));
 app.use(csrfMiddleware);
 app.use((_req, res, next) => {
   res.locals.evento = EVENTO;

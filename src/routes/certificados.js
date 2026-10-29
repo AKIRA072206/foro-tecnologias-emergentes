@@ -126,7 +126,7 @@ certificadosRouter.get("/c/:token", async (req, res) => {
 certificadosRouter.post(
   "/certificados/:id/pdf",
   requireStaff,
-  raw({ type: "application/pdf" }),
+  raw({ type: "application/pdf", limit: "15mb" }),
   async (req, res) => {
     const id = Number.parseInt(req.params.id, 10);
     if (!Number.isInteger(id) || id <= 0) {
@@ -230,5 +230,3 @@ certificadosRouter.get("/api/certificados/:id/enlace", requireStaff, async (req,
     url: `/c/${createCertificateToken(id)}`,
   });
 });
-
-
