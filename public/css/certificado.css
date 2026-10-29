@@ -1,12 +1,18 @@
 ﻿/* ============================================================
-   Certificado de Asistencia
-   Fondo = plantilla del reconocimiento oficial (UPTYAB / Foro IA)
+   Certificado de Asistencia / Reconocimiento
+   Fondo limpio: public/img/plantilla-certificado-limpia.png
+   (marco + logos institucionales sin texto quemado)
+
+   Todas las medidas internas usan cqw (container query width),
+   de modo que el certificado escala proporcionalmente al ancho
+   disponible y se mantiene estable al exportar a PDF.
    ============================================================ */
 
 :root {
     --navy: #001b48;
     --blue: #0d47a1;
-    --serif: "Libre Baskerville", "Times New Roman", Georgia, serif;
+    --line: #1f78a8;
+    --serif: "Cormorant Garamond", "Times New Roman", Georgia, serif;
     --sans: "Montserrat", Arial, Helvetica, sans-serif;
 }
 
@@ -31,6 +37,9 @@ body {
     print-color-adjust: exact;
 }
 
+/* ------------------------------------------------------------
+   Barra de herramientas (no se imprime)
+   ------------------------------------------------------------ */
 .cert-toolbar {
     display: flex;
     justify-content: space-between;
@@ -43,12 +52,8 @@ body {
 .cert-toolbar-actions {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.6rem;
-}
-
-.btn-tool:disabled {
-    opacity: 0.7;
-    cursor: wait;
 }
 
 .btn-tool {
@@ -66,20 +71,29 @@ body {
     cursor: pointer;
 }
 
+.btn-tool:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
 .btn-tool-primary {
     background: var(--navy);
     border-color: var(--navy);
     color: #fff;
 }
 
+/* ------------------------------------------------------------
+   Lienzo del certificado
+   ------------------------------------------------------------ */
 .certificate {
     position: relative;
     width: min(100% - 1.25rem, 1100px);
-    aspect-ratio: 1024 / 724;
+    aspect-ratio: 3300 / 2550;
     margin: 0 auto 2rem;
-    background: #fff;
+    background: #f7fbfd;
     box-shadow: 0 20px 55px rgba(0, 18, 51, 0.22);
     overflow: hidden;
+    container-type: inline-size;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
@@ -89,39 +103,17 @@ body {
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: cover;
     z-index: 1;
     pointer-events: none;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
 
-.cert-logos {
-    position: absolute;
-    top: 5.5%;
-    left: 6%;
-    right: 6%;
-    z-index: 6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    pointer-events: none;
-}
-
-/* Mismo tamaÃ±o para ambos logos */
-.logo-foro-cert,
-.logo-uptyab {
-    width: clamp(110px, 16vw, 168px);
-    height: clamp(110px, 16vw, 168px);
-    object-fit: contain;
-    object-position: center;
-}
-
-.logo-foro-cert {
-    border-radius: 12px;
-    background: transparent;
-}
-
+/* ------------------------------------------------------------
+   Columna de contenido: flujo vertical ordenado.
+   El pie se empuja al fondo con margin-top:auto (sin solapes).
+   ------------------------------------------------------------ */
 .cert-content {
     position: absolute;
     inset: 0;
@@ -129,131 +121,223 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-evenly;
-    padding: 18% 10% 6%;
+    justify-content: flex-start;
+    padding: 10.2cqw 8cqw 6.2cqw;
     text-align: center;
 }
 
-/* ============================================================ */
+.cert-top,
+.cert-body,
+.cert-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* ------------------------------------------------------------
+   Bloque superior
+   ------------------------------------------------------------ */
+.cert-title {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 4.5cqw;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.1;
+    color: var(--navy);
+    text-transform: uppercase;
+}
+
+/* Divisor: línea con viñeta central de 3 puntos y remates. */
 .cert-divider {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
-    width: min(48%, 400px);
-    margin: 0.28rem 0 0.48rem;
+    gap: 0.4cqw;
+    width: 42cqw;
+    height: 1.1cqw;
+    margin: 1.5cqw 0 1.05cqw;
+    background-image:
+        radial-gradient(circle at 0 50%, var(--line) 0.34cqw, transparent 0.35cqw),
+        radial-gradient(circle at 100% 50%, var(--line) 0.34cqw, transparent 0.35cqw);
+    background-repeat: no-repeat;
 }
 
-/* ============================================================ */
 .cert-divider::before,
 .cert-divider::after {
     content: "";
     flex: 1;
-    height: 1.5px;
-    background: var(--navy);
+    height: 0.16cqw;
+    min-height: 1px;
+    background: var(--line);
 }
 
-/* ============================================================ */
 .cert-divider span {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--navy);
-    box-shadow: -9px 0 0 var(--navy), 9px 0 0 var(--navy);
     flex-shrink: 0;
+    width: 0.66cqw;
+    height: 0.66cqw;
+    border-radius: 50%;
+    background: var(--line);
+    box-shadow:
+        -0.92cqw 0 0 var(--line),
+        0.92cqw 0 0 var(--line);
 }
 
-/* ============================================================ */
-.cert-divider-name {
-    margin-top: 0.08rem;
-    margin-bottom: 0.22rem;
-}
-
-/* ============================================================ */
-.cert-title {
-    margin: 0;
-    font-family: var(--serif);
-    font-size: clamp(1rem, 2.5vw, 1.8rem);
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    color: var(--navy);
-    text-transform: uppercase;
-    line-height: 1.2;
-}
-
-/* ============================================================ */
 .cert-otorgado {
-    margin: 0.45rem 0 0.28rem;
-    font-size: clamp(0.92rem, 1.5vw, 1.18rem);
+    margin: 0 0 2.9cqw;
+    font-size: 2.15cqw;
     font-weight: 500;
+    line-height: 1.2;
     color: var(--navy);
 }
 
-/* ============================================================ */
 .cert-name {
     margin: 0;
+    max-width: 84%;
     font-family: var(--serif);
-    font-size: clamp(1.2rem, 3.2vw, 2.2rem);
+    font-size: 3.55cqw;
     font-weight: 700;
     letter-spacing: 0.02em;
+    line-height: 1.14;
     color: var(--navy);
     text-transform: uppercase;
-    line-height: 1.2;
-    max-width: 92%;
+    overflow-wrap: break-word;
 }
 
-/* ============================================================ */
 .cert-cedula {
-    margin: 0.08rem 0 0.5rem;
-    font-size: clamp(0.72rem, 1.1vw, 0.9rem);
+    margin: 0.5cqw 0 0;
+    font-size: 1.8cqw;
     font-weight: 500;
-    color: var(--blue);
+    line-height: 1.2;
+    color: var(--navy);
+    letter-spacing: 0.01em;
 }
 
-/* ============================================================ */
+.cert-divider-name {
+    margin-top: 0.7cqw;
+    margin-bottom: 1cqw;
+}
+
+/* ------------------------------------------------------------
+   Cuerpo: motivo + colaboración
+   ------------------------------------------------------------ */
+.cert-body {
+    gap: 0.85cqw;
+}
+
 .cert-motivo {
-    margin: 0.1rem 0;
-    max-width: 40rem;
-    font-size: clamp(0.78rem, 1.15vw, 0.98rem);
+    margin: 0;
+    max-width: 58cqw;
+    font-size: 1.82cqw;
     font-weight: 500;
-    line-height: 1.3;
+    line-height: 1.35;
     color: var(--navy);
 }
 
-/* ============================================================ */
-.cert-motivo strong {
+.cert-motivo-intro {
+    display: block;
+    font-weight: 500;
+}
+
+.cert-motivo-evento {
+    display: block;
+    margin-top: 0.5cqw;
+    font-size: 1.85cqw;
     font-weight: 700;
+    line-height: 1.26;
 }
 
-/* ============================================================ */
 .cert-colaboracion {
-    margin: 0.1rem 0;
-    max-width: 40rem;
-    font-size: clamp(0.62rem, 0.9vw, 0.75rem);
+    margin: 0;
+    max-width: 58cqw;
+    font-size: 1.55cqw;
     font-weight: 400;
-    line-height: 1.3;
+    line-height: 1.55;
     color: var(--navy);
 }
 
-/* ============================================================ */
+/* ------------------------------------------------------------
+   Pie: firmas + fecha + cierre
+   ------------------------------------------------------------ */
+.cert-bottom {
+    margin-top: auto;
+}
+
 .cert-signatures {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+    gap: 3cqw;
+    width: 88cqw;
+    margin-bottom: 0.4cqw;
+}
+
+.cert-sign {
     display: flex;
-    justify-content: space-around;
-    width: 100%;
-    margin-top: 0.5rem;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+}
+
+.cert-sign-line {
+    display: block;
+    width: 58%;
+    height: 0.16cqw;
+    min-height: 1px;
+    margin-bottom: 1.7cqw;
+    background: var(--navy);
+    opacity: 0.9;
+}
+
+.cert-sign-name {
+    margin: 0;
+    font-size: 1.65cqw;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--navy);
+    overflow-wrap: break-word;
+}
+
+.cert-sign-role {
+    margin: 0.1cqw 0 0;
+    font-size: 1.5cqw;
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--navy);
 }
 
 .cert-fecha {
-    margin: 0.4rem 0 0;
-    font-size: clamp(0.92rem, 1.4vw, 1.1rem);
-    font-weight: 600;
+    margin: 0;
+    font-size: 1.72cqw;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     color: var(--navy);
 }
 
-.cert-codigo {
-    margin: 0.5rem 0 0;
-    font-size: 0.72rem;
-    color: #607d8b;
+.cert-divider-bottom {
+    width: 35cqw;
+    margin: 4cqw 0 0;
+}
+
+/* Estado de la copia en Neon Object Storage */
+.cert-save-status {
+    font-size: 0.8rem;
+    color: #003b7a;
+    margin-right: 0.5rem;
+}
+
+.cert-save-status.is-error {
+    color: #b42318;
+}
+
+/* ------------------------------------------------------------
+   Impresión / PDF
+   ------------------------------------------------------------ */
+@page {
+    size: A4 landscape;
+    margin: 0;
 }
 
 @media print {
@@ -263,43 +347,39 @@ body {
 
     .cert-page {
         background: #fff;
+        min-height: 0;
     }
 
     .certificate {
-        width: 100%;
-        max-width: none;
-        height: 100vh;
-        margin: 0;
+        width: auto;
+        height: 210mm;
+        max-height: 210mm;
+        max-width: 100%;
+        margin: 0 auto;
         box-shadow: none;
     }
-
-    @page {
-        size: landscape;
-        margin: 0;
-    }
 }
 
-@media (max-width: 760px) {
+/* ------------------------------------------------------------
+   Móvil: el contenedor manda; el contenido ya es proporcional.
+   ------------------------------------------------------------ */
+@media (max-width: 560px) {
     .certificate {
-        aspect-ratio: auto;
-        min-height: 560px;
-        height: auto;
+        width: calc(100% - 0.75rem);
     }
 
-    .cert-bg {
-        object-fit: cover;
-        object-position: top center;
+    .cert-toolbar {
+        width: calc(100% - 1rem);
+        flex-wrap: wrap;
     }
 
-    .cert-content {
-        position: relative;
-        padding: 8rem 1.4rem 2.2rem;
-        min-height: 560px;
+    .cert-toolbar-actions {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+
+    .btn-tool {
+        padding: 0.5rem 0.9rem;
+        font-size: 0.82rem;
     }
 }
-
-/* Estado de la copia en Neon Object Storage */
-.cert-save-status { font-size: .8rem; color: #003b7a; margin-right: .5rem; }
-.cert-save-status.is-error { color: #b42318; }
-
-

@@ -82,7 +82,9 @@
           },
           jsPDF: {
             unit: "mm",
-            format: "a4",
+            // Proporción exacta del lienzo (3300×2550) para evitar una
+            // segunda página en blanco al exportar.
+            format: [297, 229.5],
             orientation: "landscape",
           },
           pagebreak: { mode: ["avoid-all"] },

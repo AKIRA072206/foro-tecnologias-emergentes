@@ -2,16 +2,32 @@
   const est = locals.estudiante;
   const nombreCompleto = locals.nombreCompleto;
   const archivoPdf = locals.archivoPdf;
+
+  // Tipo de certificado: "asistencia" (por defecto) o "reconocimiento".
+  const tipo = locals.tipoCertificado === "reconocimiento" ? "reconocimiento" : "asistencia";
+  const esAsistencia = tipo === "asistencia";
+
+  const titulo = esAsistencia ? "CERTIFICADO" : "RECONOCIMIENTO";
+  const introMotivo = esAsistencia
+    ? "Por haber asistido al"
+    : "Por su valiosa participación en el";
+
+  const cedulaRaw = String(est.cedula ?? "").replace(/\D+/g, "");
+  const cedulaFmt = cedulaRaw ? `V - ${cedulaRaw.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}` : "";
+
+  const partesEvento = String(locals.eventoTitulo ?? "").split(":");
+  const eventoLinea1 = (partesEvento[0] ?? "").trim();
+  const eventoLinea2 = partesEvento.slice(1).join(":").trim();
 %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certificado de Asistencia — <%= nombreCompleto %></title>
+    <title><%= esAsistencia ? "Certificado de Asistencia" : "Reconocimiento" %> — <%= nombreCompleto %></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/certificado.css">
 </head>
 <body class="cert-page">
@@ -24,45 +40,70 @@
         </div>
     </div>
 
-    <article class="certificate" id="certificado" aria-label="Certificado de asistencia"
+    <article class="certificate" id="certificado" aria-label="<%= esAsistencia ? 'Certificado de asistencia' : 'Reconocimiento' %>"
              data-filename="<%= archivoPdf %>"
              data-estudiante-id="<%= est.id %>"
              data-csrf="<%= locals.csrf || '' %>">
-        <img class="cert-bg" src="/img/plantilla-certificado.png" alt="" aria-hidden="true">
-
-        <header class="cert-logos">
-            <img class="logo-foro-cert" src="/img/logo-foro-cert.png" alt="II Foro Tecnologías Emergentes — Inteligencia Artificial">
-            <img class="logo-uptyab" src="/img/logo-uptyab.png" alt="UPTYAB">
-        </header>
+        <img class="cert-bg" src="/img/plantilla-certificado-limpia.png" alt="" aria-hidden="true">
 
         <div class="cert-content">
-            <div class="cert-divider" aria-hidden="true"><span></span></div>
+            <header class="cert-top">
+                <h1 class="cert-title"><%= titulo %></h1>
 
-            <h1 class="cert-title">CERTIFICADO DE ASISTENCIA</h1>
+                <div class="cert-divider" aria-hidden="true"><span></span></div>
 
-            <div class="cert-divider" aria-hidden="true"><span></span></div>
+                <p class="cert-otorgado">Otorgado a</p>
 
-            <p class="cert-otorgado">Otorgado a</p>
+                <p class="cert-name"><%= nombreCompleto %></p>
 
-            <p class="cert-name"><%= nombreCompleto %></p>
+                <% if (cedulaFmt) { %>
+                <p class="cert-cedula"><%= cedulaFmt %></p>
+                <% } %>
 
-            <div class="cert-divider cert-divider-name" aria-hidden="true"><span></span></div>
+                <div class="cert-divider cert-divider-name" aria-hidden="true"><span></span></div>
+            </header>
 
-            <p class="cert-cedula">Cédula: <%= est.cedula %></p>
+            <section class="cert-body">
+                <p class="cert-motivo">
+                    <span class="cert-motivo-intro"><%= introMotivo %></span>
+                    <strong class="cert-motivo-evento">
+                        <%= eventoLinea1 %><% if (eventoLinea2) { %>:<br><%= eventoLinea2 %><% } %>
+                    </strong>
+                </p>
 
-            <p class="cert-motivo">
-                Por su asistencia al
-                <strong>II Foro de Tecnologías Emergentes (IA).</strong>
-            </p>
+                <p class="cert-colaboracion">
+                    Realizado en colaboración con los estudiantes de trayecto IV<br>
+                    y sus formadoras Dra. Noraima Merlo e Ing. Lidia Cordero<br>
+                    del Programa Nacional de Formación en Informática<br>
+                    de la UPTYAB.
+                </p>
+            </section>
 
-            <p class="cert-colaboracion">
-                Realizado en colaboración con los estudiantes de trayecto IV
-                del programa nacional de formación en informática de la UPTYAB.
-            </p>
+            <footer class="cert-bottom">
+                <% if (esAsistencia) { %>
+                <div class="cert-signatures">
+                    <div class="cert-sign">
+                        <span class="cert-sign-line" aria-hidden="true"></span>
+                        <p class="cert-sign-name">Dra. Noraima Merlo</p>
+                        <p class="cert-sign-role">Prof. Formadora PST<br>IV</p>
+                    </div>
+                    <div class="cert-sign">
+                        <span class="cert-sign-line" aria-hidden="true"></span>
+                        <p class="cert-sign-name">Ing. Roberth Mujica</p>
+                        <p class="cert-sign-role">Tutor Asesor</p>
+                    </div>
+                    <div class="cert-sign">
+                        <span class="cert-sign-line" aria-hidden="true"></span>
+                        <p class="cert-sign-name">MSc. Luis Cordero</p>
+                        <p class="cert-sign-role">Coord. de PNF en Informática</p>
+                    </div>
+                </div>
+                <% } %>
 
-            <div class="cert-divider" aria-hidden="true"><span></span></div>
+                <p class="cert-fecha"><%= locals.eventoFecha %></p>
 
-            <p class="cert-fecha"><%= locals.eventoFecha %></p>
+                <div class="cert-divider cert-divider-bottom" aria-hidden="true"><span></span></div>
+            </footer>
         </div>
     </article>
 
