@@ -27,7 +27,7 @@
     <article class="certificate" id="certificado" aria-label="Certificado de asistencia"
              data-filename="<%= archivoPdf %>"
              data-estudiante-id="<%= est.id %>"
-             data-csrf="<%= locals.csrf %>">
+             data-csrf="<%= locals.csrf || '' %>">
         <img class="cert-bg" src="/img/plantilla-certificado.png" alt="" aria-hidden="true">
 
         <header class="cert-logos">

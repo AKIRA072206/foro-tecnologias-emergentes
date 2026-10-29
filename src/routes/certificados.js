@@ -1,4 +1,4 @@
-import { Router, raw } from "express";
+﻿import { Router, raw } from "express";
 import { EVENTO } from "../config.js";
 import {
   createCertificateToken,
@@ -32,7 +32,7 @@ function renderCertificado(res, status, estudiante, { publico = false } = {}) {
   const archivoPdf = `Certificado_Asistencia_${nombreCompleto.replace(/[^A-Za-z0-9_-]+/g, "_")}.pdf`;
 
   return res.status(status).render("certificados/ver", {
-    title: `Certificado de Asistencia — ${nombreCompleto}`,
+    title: `Certificado de Asistencia â€” ${nombreCompleto}`,
     page: "certificado-print",
     estudiante: { ...estudiante, nombreCompleto, codigo },
     nombreCompleto,
@@ -52,7 +52,7 @@ certificadosRouter.get("/certificados/buscar", requireStaff, async (req, res) =>
 
   if (!/^[0-9]{6,10}$/.test(cedula)) {
     return renderConsulta(res, 400, {
-      mensaje: "Ingrese una cédula válida (solo números, máximo 10 dígitos).",
+      mensaje: "Ingrese una cÃ©dula vÃ¡lida (solo nÃºmeros, mÃ¡ximo 10 dÃ­gitos).",
       tipo: "error",
     });
   }
@@ -61,7 +61,7 @@ certificadosRouter.get("/certificados/buscar", requireStaff, async (req, res) =>
     const estudiante = await Estudiantes.buscarPorCedula(cedula);
     if (!estudiante) {
       return renderConsulta(res, 404, {
-        mensaje: "No se encontró un registro con esa cédula.",
+        mensaje: "No se encontrÃ³ un registro con esa cÃ©dula.",
         tipo: "error",
       });
     }
@@ -69,7 +69,7 @@ certificadosRouter.get("/certificados/buscar", requireStaff, async (req, res) =>
     if (!estudiante.asistio) {
       return renderConsulta(res, 403, {
         mensaje:
-          "El participante aún no tiene asistencia confirmada. El certificado no está disponible.",
+          "El participante aÃºn no tiene asistencia confirmada. El certificado no estÃ¡ disponible.",
         tipo: "error",
       });
     }
@@ -93,7 +93,7 @@ certificadosRouter.get("/certificados/:id", requireStaff, async (req, res) => {
 
     if (!estudiante.asistio) {
       return renderConsulta(res, 403, {
-        mensaje: "No es posible emitir el certificado: la asistencia no está confirmada.",
+        mensaje: "No es posible emitir el certificado: la asistencia no estÃ¡ confirmada.",
         tipo: "error",
       });
     }
@@ -105,7 +105,7 @@ certificadosRouter.get("/certificados/:id", requireStaff, async (req, res) => {
   }
 });
 
-// Enlace público firmado (INT-2, /c/:token)
+// Enlace pÃºblico firmado (INT-2, /c/:token)
 certificadosRouter.get("/c/:token", async (req, res) => {
   const payload = readCertificateToken(req.params.token);
   if (!payload) return res.status(404).send("Certificado no encontrado o enlace vencido.");
@@ -126,19 +126,19 @@ certificadosRouter.get("/c/:token", async (req, res) => {
 certificadosRouter.post(
   "/certificados/:id/pdf",
   requireStaff,
-  raw({ type: "application/pdf", limit: "15mb" }),
+  raw({ type: "application/pdf" }),
   async (req, res) => {
     const id = Number.parseInt(req.params.id, 10);
     if (!Number.isInteger(id) || id <= 0) {
-      return res.status(422).json({ ok: false, mensaje: "Identificador inválido." });
+      return res.status(422).json({ ok: false, mensaje: "Identificador invÃ¡lido." });
     }
 
     if (!verifyCsrf(req)) {
-      return res.status(403).json({ ok: false, mensaje: "Token de seguridad inválido." });
+      return res.status(403).json({ ok: false, mensaje: "Token de seguridad invÃ¡lido." });
     }
 
     if (!Buffer.isBuffer(req.body) || req.body.subarray(0, 5).toString() !== "%PDF-") {
-      return res.status(415).json({ ok: false, mensaje: "Se esperaba un PDF válido." });
+      return res.status(415).json({ ok: false, mensaje: "Se esperaba un PDF vÃ¡lido." });
     }
 
     try {
@@ -179,7 +179,7 @@ certificadosRouter.get("/certificados/:id/pdf", requireStaff, async (req, res) =
       "SELECT object_key FROM certificados WHERE estudiante_id = $1 LIMIT 1",
       [id],
     );
-    if (!rows[0]) return res.status(404).send("Todavía no hay un PDF guardado.");
+    if (!rows[0]) return res.status(404).send("TodavÃ­a no hay un PDF guardado.");
 
     if (isAjax(req)) {
       return res.json({ ok: true, key: rows[0].object_key, url: await urlCertificado(rows[0].object_key) });
@@ -195,7 +195,7 @@ certificadosRouter.get("/certificados/:id/pdf", requireStaff, async (req, res) =
 certificadosRouter.post("/api/ai/mensaje/:id", requireStaff, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(422).json({ ok: false, mensaje: "Identificador inválido." });
+    return res.status(422).json({ ok: false, mensaje: "Identificador invÃ¡lido." });
   }
 
   try {
@@ -220,7 +220,7 @@ certificadosRouter.post("/api/ai/mensaje/:id", requireStaff, async (req, res) =>
   }
 });
 
-// Enlace público para probar sin sesión desde la app
+// Enlace pÃºblico para probar sin sesiÃ³n desde la app
 certificadosRouter.get("/api/certificados/:id/enlace", requireStaff, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id <= 0) return res.status(422).json({ ok: false });
@@ -230,3 +230,5 @@ certificadosRouter.get("/api/certificados/:id/enlace", requireStaff, async (req,
     url: `/c/${createCertificateToken(id)}`,
   });
 });
+
+
