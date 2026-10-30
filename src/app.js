@@ -4,6 +4,15 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { EVENTO, asistenciaHabilitada } from "./config.js";
 import { csrfMiddleware } from "./auth.js";
+
+// Token de bypass para Preview de Vercel (solo entornos de preview)
+const BYPASS_TOKEN = process.env.FORO_BYPASS_TOKEN ?? "";
+
+function verifyBypassToken(req) {
+  if (!BYPASS_TOKEN) return false;
+  const sent = req.get("x-vercel-bypass-token") ?? "";
+  return sent === BYPASS_TOKEN;
+}
 import { registroRouter } from "./routes/registro.js";
 import { authRouter } from "./routes/auth.js";
 import { logisticaRouter } from "./routes/logistica.js";
@@ -45,6 +54,19 @@ app.use(csrfMiddleware);
 app.use((_req, res, next) => {
   res.locals.evento = EVENTO;
   res.locals.asistenciaHabilitada = asistenciaHabilitada();
+  next();
+});
+
+// Bypass para Preview de Vercel: permite acceso a rutas protegidas
+// sin autenticación completa si se presenta el token válido.
+app.use((req, res, next) => {
+  const bypassOk = verifyBypassToken(req);
+  res.locals.bypass = bypassOk;
+  if (bypassOk) {
+    // Sesión temporal para permitir acceso a requireStaff en preview
+    req.session = { usuario: "preview-bypass", idp: "bypass", sub: "bypass:preview" };
+    res.locals.usuario = "preview-bypass";
+  }
   next();
 });
 

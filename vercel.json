@@ -5,13 +5,32 @@
     "api/index.js": {
       "memory": 1024,
       "maxDuration": 30,
-      "includeFiles": "{views/**,public/**}"
+      "includeFiles": "views/**,public/**"
     }
   },
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/api/index"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
     }
   ]
 }
