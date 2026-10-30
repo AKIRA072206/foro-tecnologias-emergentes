@@ -25,9 +25,12 @@ export const EVENTO = {
 };
 
 // null = automático por fecha | true/false = forzar
-export const FORZAR_ASISTENCIA = process.env.FORO_FORZAR_ASISTENCIA
-  ? bool(process.env.FORO_FORZAR_ASISTENCIA)
-  : true;
+// Sin la variable definida, la asistencia se habilita sola el día del evento.
+export const FORZAR_ASISTENCIA =
+  process.env.FORO_FORZAR_ASISTENCIA === undefined ||
+  process.env.FORO_FORZAR_ASISTENCIA === ""
+    ? null
+    : bool(process.env.FORO_FORZAR_ASISTENCIA);
 
 export const STAFF = {
   usuario: process.env.FORO_USER ?? "logistica",

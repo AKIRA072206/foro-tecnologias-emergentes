@@ -73,7 +73,7 @@ const requeridos = [
   "public/js/certificado.js",
   "public/js/logistica-live.js",
   "public/img/logo-foro-cert.png",
-  "public/img/plantilla-certificado.png",
+  "public/img/plantilla-certificado-limpia.png",
 ];
 for (const activo of requeridos) {
   if (!fs.existsSync(path.join(root, activo))) errores.push(`falta activo: ${activo}`);
