@@ -1,9 +1,26 @@
 import { neon } from "@neondatabase/serverless";
 import { NEON } from "./config.js";
 
+function esUrlValida(url) {
+  if (!url || typeof url !== "string") return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "postgresql:";
+  } catch {
+    return false;
+  }
+}
+
 // Driver HTTP serverless de Neon: cada query es una petición HTTP.
 // Evita agotar conexiones en funciones serverless de Vercel.
-const sql = neon(NEON.databaseUrl);
+// Fallback robusto: DATABASE_URL_UNPOOLED si DATABASE_URL no es una URL válida.
+const connectionString =
+  esUrlValida(NEON.databaseUrl) || esUrlValida(NEON.databaseUrlUnpooled)
+    ? esUrlValida(NEON.databaseUrl)
+      ? NEON.databaseUrl
+      : NEON.databaseUrlUnpooled
+    : "";
+const sql = neon(connectionString);
 
 export async function query(text, params = []) {
   const rows = await sql.query(text, params);

@@ -1,4 +1,15 @@
-¡Aprobado! Por favor procede con las 3 tareas del plan:
-1. Configura FORO_FORZAR_ASISTENCIA=true en .env.local para habilitar los selectores de asistencia de inmediato.
-2. Modifica temporalmente la ruta POST /logistica/eliminar en src/routes/logistica.js para permitir eliminar registros de prueba aunque tengan asistencia marcada.
-3. Crea el archivo scripts/estudiantes.json con los datos anteriores (Carlos, César, Yelitza, Emmanuel, Zulay, Denyer) y desarrolla/ejecuta el script scripts/importar_json.mjs para restaurar los datos en Neon de forma idempotente usando DATABASE_URL_UNPOOLED.
+Actúa como Desarrollador Full-Stack y DevOps Senior. Necesitamos corregir 3 fallos críticos identificados en las capturas de producción y logs de Vercel:
+
+1. REPARAR CONEXIÓN A BASE DE DATOS Y ENTORNO DE PRODUCCIÓN:
+   - Los logs de Vercel muestran el error: "Database connection string provided to neon() is not a valid URL".
+   - Revisa src/db.js / src/config.js para asegurar un fallback robusto en caso de que DATABASE_URL_UNPOOLED o DATABASE_URL no estén bien formadas.
+   - Usando el MCP de Vercel, verifica e inyecta en el entorno de Production las variables indispensables:
+     * DATABASE_URL y DATABASE_URL_UNPOOLED (Asegúrate de que contengan la cadena de conexión completa de Neon).
+     * FORO_FORZAR_ASISTENCIA=true (Para forzar la visualización de los selectores de "¿Vino?" y emisión de certificados en la interfaz).
+
+2. HABILITAR BOTÓN DE ELIMINACIÓN EN EL FRONTEND:
+   - En la vista HTML/EJS del panel de logística (views/logistica/index.ejs), elimina la condición disabled del botón "Eliminar" (o quita la restricción en el cliente) para que cualquier registro de prueba pueda ser eliminado haciendo clic desde la tabla sin importar su estado.
+
+3. REFRESCAR Y VERIFICAR TABLA DE LOGÍSTICA:
+   - Asegúrate de que el endpoint GET /logistica devuelva la lista completa de estudiantes (incluyendo a Luben López C.I. 12077304) y que la caja de búsqueda limpie/filtre los resultados correctamente sin romper el renderizado.
+   - Ejecuta un redeploy en Vercel y haz un healthcheck a la URL de producción para confirmar que desaparecieron los errores de "connection string" en los logs.
