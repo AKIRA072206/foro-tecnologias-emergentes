@@ -180,15 +180,8 @@ logisticaRouter.post("/logistica/eliminar", requireStaff, async (req, res) => {
       return res.status(404).json({ ok: false, mensaje: "Estudiante no encontrado." });
     }
 
-    if (actual.asistio) {
-      return res.status(409).json({
-        ok: false,
-        mensaje:
-          "No se puede eliminar: la asistencia ya fue confirmada y el certificado está en proceso.",
-        data: { id, asistio: true, bloqueado: true },
-      });
-    }
-
+    // INT-4 (pruebas): se permite eliminar aunque la asistencia esté marcada,
+    // para facilitar la limpieza de datos de prueba.
     const borrado = await Estudiantes.eliminar(id);
     if (!borrado) {
       return res.status(404).json({ ok: false, mensaje: "Estudiante no encontrado." });
